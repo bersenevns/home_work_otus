@@ -44,35 +44,19 @@
 
 ## Схема соединений
 
-## 🔌 Spine-Leaf topology
+### 🟦 Spine 1
 
-## 🔌 Spine-Leaf topology
+- Spine 1 ↔ Leaf 1 → `10.10.11.0/30`
+- Spine 1 ↔ Leaf 2 → `10.10.12.0/30`
+- Spine 1 ↔ Leaf 3 → `10.10.13.0/30`
 
-```mermaid
-graph TB
+---
 
-%% Spine layer
-subgraph SPINES
-S1[Spine 1]
-S2[Spine 2]
-end
+### 🟦 Spine 2
 
-%% Leaf layer
-subgraph LEAFS
-L1[Leaf 1]
-L2[Leaf 2]
-L3[Leaf 3]
-end
-
-%% Connections (без подписей, чтобы не было каши)
-S1 --> L1
-S1 --> L2
-S1 --> L3
-
-S2 --> L1
-S2 --> L2
-S2 --> L3
-```
+- Spine 2 ↔ Leaf 1 → `10.10.21.0/30`
+- Spine 2 ↔ Leaf 2 → `10.10.22.0/30`
+- Spine 2 ↔ Leaf 3 → `10.10.23.0/30`
 
 ---
 
