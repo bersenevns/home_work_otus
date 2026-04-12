@@ -49,16 +49,13 @@
 ```mermaid
 graph TD
 
-%% Spines
 S1[Spine 1]
 S2[Spine 2]
 
-%% Leafs
 L1[Leaf 1]
 L2[Leaf 2]
 L3[Leaf 3]
 
-%% Connections with subnets
 S1 -- 10.10.11.0/30 --> L1
 S1 -- 10.10.12.0/30 --> L2
 S1 -- 10.10.13.0/30 --> L3
