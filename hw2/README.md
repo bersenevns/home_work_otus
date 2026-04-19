@@ -7,7 +7,6 @@
 Цель:
 - обеспечить доступность всех loopback-интерфейсов
 - обеспечить доступность всех underlay-сетей
-- убедиться, что маршруты распространяются через OSPF
 
 ---
 
@@ -17,7 +16,7 @@
 
 ---
 
-## 🌐 Адресация
+## Адресация
 
 Логика адресации и коммутация представлены [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw1/README.md). Добавлены только loopback.
 
@@ -33,7 +32,7 @@
 
 ---
 
-## ⚙️ Конфигурация
+## Конфигурация
 
 1) Включен роутинг
 2) На интерфейсах настроен MTU 9214
@@ -170,7 +169,7 @@ interface Management1
 ip routing
 !
 router ospf 1
-   router-id 10.10.10.3
+   router-id 10.10.10.11
    passive-interface default
    no passive-interface Ethernet7
    no passive-interface Ethernet8
@@ -211,7 +210,7 @@ interface Management1
 ip routing
 !
 router ospf 1
-   router-id 10.10.10.4
+   router-id 10.10.10.12
    passive-interface default
    no passive-interface Ethernet7
    no passive-interface Ethernet8
@@ -254,7 +253,7 @@ interface Management1
 ip routing
 !
 router ospf 1
-   router-id 10.10.10.5
+   router-id 10.10.10.13
    passive-interface default
    no passive-interface Ethernet7
    no passive-interface Ethernet8
