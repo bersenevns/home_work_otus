@@ -43,7 +43,7 @@
 Конфигурация устройст представлена ниже, лишние строки удалены в целях читаемости.
 
 <details>
-<summary>Показать конфигурацию S1</summary>
+<summary><b>Показать конфигурацию S1</b></summary>
 
 ```bash
 hostname S1
@@ -262,3 +262,40 @@ router ospf 1
 end
 ```
 </details>
+
+## Результаты
+
+Возьмем для проверки L2 и проверим у него таблицу маршрутизации
+
+```bash
+L2#sh ip route
+
+VRF: default
+Codes: C - connected, S - static, K - kernel, 
+       O - OSPF, IA - OSPF inter area, E1 - OSPF external type 1,
+       E2 - OSPF external type 2, N1 - OSPF NSSA external type 1,
+       N2 - OSPF NSSA external type2, B - Other BGP Routes,
+       B I - iBGP, B E - eBGP, R - RIP, I L1 - IS-IS level 1,
+       I L2 - IS-IS level 2, O3 - OSPFv3, A B - BGP Aggregate,
+       A O - OSPF Summary, NG - Nexthop Group Static Route,
+       V - VXLAN Control Service, M - Martian,
+       DH - DHCP client installed default route,
+       DP - Dynamic Policy Route, L - VRF Leaked,
+       G  - gRIBI, RC - Route Cache Route
+
+Gateway of last resort is not set
+
+ O        10.10.10.1/32 [110/20] via 10.10.12.1, Ethernet8
+ O        10.10.10.2/32 [110/20] via 10.10.22.1, Ethernet7
+ O        10.10.10.11/32 [110/30] via 10.10.22.1, Ethernet7
+                                  via 10.10.12.1, Ethernet8
+ C        10.10.10.12/32 is directly connected, Loopback0
+ O        10.10.10.13/32 [110/30] via 10.10.22.1, Ethernet7
+                                  via 10.10.12.1, Ethernet8
+ O        10.10.11.0/30 [110/20] via 10.10.12.1, Ethernet8
+ C        10.10.12.0/30 is directly connected, Ethernet8
+ O        10.10.13.0/30 [110/20] via 10.10.12.1, Ethernet8
+ O        10.10.21.0/30 [110/20] via 10.10.22.1, Ethernet7
+ C        10.10.22.0/30 is directly connected, Ethernet7
+ O        10.10.23.0/30 [110/20] via 10.10.22.1, Ethernet7
+```
