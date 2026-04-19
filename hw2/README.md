@@ -45,6 +45,7 @@
 
 <details>
 <summary>Показать конфигурацию S1</summary>
+
 ```bash
 hostname S1
 !
@@ -87,7 +88,7 @@ router ospf 1
    max-lsa 12000
 !
 end
-```</details>
+</details>```
 
 ### S2
 ```bash
