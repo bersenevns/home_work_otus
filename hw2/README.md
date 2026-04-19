@@ -89,6 +89,7 @@ router ospf 1
 !
 end
 </details>
+
 ```
 
 ### S2
