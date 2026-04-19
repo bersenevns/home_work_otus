@@ -87,3 +87,50 @@ router ospf 1
 !
 end
 ```
+### S2
+```bash
+hostname S2
+!
+spanning-tree mode mstp
+!
+interface Ethernet1
+   description TO_LEAF_1
+   mtu 9214
+   no switchport
+   ip address 10.10.21.1/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet2
+   description TO_LEAF_2
+   mtu 9214
+   no switchport
+   ip address 10.10.22.1/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet3
+   description TO_LEAF_3
+   mtu 9214
+   no switchport
+   ip address 10.10.23.1/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Loopback0
+   ip address 10.10.10.2/32
+   ip ospf area 0.0.0.0
+!
+interface Management1
+!
+ip routing
+!
+router ospf 1
+   router-id 10.10.10.2
+   passive-interface default
+   no passive-interface Ethernet1
+   no passive-interface Ethernet2
+   no passive-interface Ethernet3
+   max-lsa 12000
+!
+end
