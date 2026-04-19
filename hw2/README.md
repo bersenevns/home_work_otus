@@ -6,7 +6,7 @@
 
 Цель:
 - обеспечить доступность всех loopback-интерфейсов
-- обеспечить доступность всех underlay-сетей
+- обеспечить доступность всех point-to-point сетей
 
 ---
 
@@ -285,17 +285,17 @@ Codes: C - connected, S - static, K - kernel,
 
 Gateway of last resort is not set
 
- O        10.10.10.1/32 [110/20] via 10.10.12.1, Ethernet8
- O        10.10.10.2/32 [110/20] via 10.10.22.1, Ethernet7
- O        10.10.10.11/32 [110/30] via 10.10.22.1, Ethernet7
-                                  via 10.10.12.1, Ethernet8
- C        10.10.10.12/32 is directly connected, Loopback0
- O        10.10.10.13/32 [110/30] via 10.10.22.1, Ethernet7
-                                  via 10.10.12.1, Ethernet8
- O        10.10.11.0/30 [110/20] via 10.10.12.1, Ethernet8
- C        10.10.12.0/30 is directly connected, Ethernet8
- O        10.10.13.0/30 [110/20] via 10.10.12.1, Ethernet8
- O        10.10.21.0/30 [110/20] via 10.10.22.1, Ethernet7
- C        10.10.22.0/30 is directly connected, Ethernet7
- O        10.10.23.0/30 [110/20] via 10.10.22.1, Ethernet7
+ O        10.10.10.1/32 [110/20] via 10.10.12.1, Ethernet8 # loopback Spine1
+ O        10.10.10.2/32 [110/20] via 10.10.22.1, Ethernet7 # loopback Spine2
+ O        10.10.10.11/32 [110/30] via 10.10.22.1, Ethernet7 # loopback Leaf1
+                                  via 10.10.12.1, Ethernet8 # loopback Leaf1
+ C        10.10.10.12/32 is directly connected, Loopback0 # свой loopback
+ O        10.10.10.13/32 [110/30] via 10.10.22.1, Ethernet7 # loopback Leaf3
+                                  via 10.10.12.1, Ethernet8 # loopback Leaf3
+ O        10.10.11.0/30 [110/20] via 10.10.12.1, Ethernet8 # link S1-L1
+ C        10.10.12.0/30 is directly connected, Ethernet8 # link S1-L2
+ O        10.10.13.0/30 [110/20] via 10.10.12.1, Ethernet8 # link S1-L3
+ O        10.10.21.0/30 [110/20] via 10.10.22.1, Ethernet7 # link S2-L1
+ C        10.10.22.0/30 is directly connected, Ethernet7 # link S2-L2
+ O        10.10.23.0/30 [110/20] via 10.10.22.1, Ethernet7 # link S2-L3
 ```
