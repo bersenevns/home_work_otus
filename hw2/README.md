@@ -93,6 +93,7 @@ end
 
 <details>
 <summary>Показать конфигурацию S2</summary>
+
 ```bash
 hostname S2
 !
