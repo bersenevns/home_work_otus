@@ -298,7 +298,20 @@ Gateway of last resort is not set
  O        10.10.21.0/30 [110/20] via 10.10.22.1, Ethernet7 # link S2-L1
  C        10.10.22.0/30 is directly connected, Ethernet7 # link S2-L2
  O        10.10.23.0/30 [110/20] via 10.10.22.1, Ethernet7 # link S2-L3
+
+L2#ping 10.10.10.11
+PING 10.10.10.11 (10.10.10.11) 72(100) bytes of data.
+80 bytes from 10.10.10.11: icmp_seq=1 ttl=63 time=7.11 ms
+80 bytes from 10.10.10.11: icmp_seq=2 ttl=63 time=4.74 ms
+80 bytes from 10.10.10.11: icmp_seq=3 ttl=63 time=4.53 ms
+80 bytes from 10.10.10.11: icmp_seq=4 ttl=63 time=4.43 ms
+80 bytes from 10.10.10.11: icmp_seq=5 ttl=63 time=4.02 ms
+
+--- 10.10.10.11 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 29ms
+rtt min/avg/max/mdev = 4.024/4.969/7.110/1.096 ms, ipg/ewma 7.297/5.987 ms
 ```
 
-Все P2P сети известны, все loopback известны. До Loopback известно 2 маршрута, по числу Spine.
-Задача выполнена!
+Все P2P сети известны, все loopback известны. До Loopback Leaf1 и Leaf3 известно по 2 маршрута, по числу Spine.
+
+Ping успешен. Задача выполнена!
