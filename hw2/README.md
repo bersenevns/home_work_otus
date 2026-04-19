@@ -43,7 +43,8 @@
 
 Конфигурация устройст представлена ниже, лишние строки удалены в целях читаемости.
 
-### S1
+<details>
+<summary>Показать конфигурацию S1</summary>
 
 ```bash
 hostname S1
@@ -88,6 +89,8 @@ router ospf 1
 !
 end
 ```
+</details>
+
 ### S2
 ```bash
 hostname S2
