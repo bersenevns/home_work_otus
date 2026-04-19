@@ -73,3 +73,46 @@ interface Ethernet1
    ip ospf network point-to-point
    ip ospf area 0.0.0.0
 !
+interface Ethernet2
+   description TO_LEAF_2
+   mtu 9214
+   no switchport
+   ip address 10.10.12.1/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet3
+   description TO_LEAF_3
+   mtu 9214
+   no switchport
+   ip address 10.10.13.1/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet4
+!
+interface Ethernet5
+!
+interface Ethernet6
+!
+interface Ethernet7
+!
+interface Ethernet8
+!
+interface Loopback0
+   ip address 10.10.10.1/32
+   ip ospf area 0.0.0.0
+!
+interface Management1
+!
+ip routing
+!
+router ospf 1
+   router-id 10.10.10.1
+   passive-interface default
+   no passive-interface Ethernet1
+   no passive-interface Ethernet2
+   no passive-interface Ethernet3
+   max-lsa 12000
+!
+end
