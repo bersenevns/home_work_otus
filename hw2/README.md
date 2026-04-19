@@ -91,7 +91,7 @@ end
 </details>
 
 <details>
-<summary>Показать конфигурацию S2</summary>
+<summary><b>Показать конфигурацию S2</b></summary>
 
 ```bash
 hostname S2
@@ -139,7 +139,7 @@ end
 </details>
 
 <details>
-<summary>Показать конфигурацию L1</summary>
+<summary><b>Показать конфигурацию L1</b></summary>
 
 ```bash
 hostname L1
@@ -180,7 +180,7 @@ end
 </details>
 
 <details>
-<summary>Показать конфигурацию L2</summary>
+<summary><b>Показать конфигурацию L2</b></summary>
 
 ```bash
 hostname L2
@@ -221,7 +221,7 @@ end
 </details>
 
 <details>
-<summary>Показать конфигурацию L3</summary>
+<summary><b>Показать конфигурацию L3</b></summary>
 
 ```bash
 hostname L3
@@ -299,3 +299,6 @@ Gateway of last resort is not set
  C        10.10.22.0/30 is directly connected, Ethernet7 # link S2-L2
  O        10.10.23.0/30 [110/20] via 10.10.22.1, Ethernet7 # link S2-L3
 ```
+
+Все P2P сети известны, все loopback известны. До Loopback известно 2 маршрута, по числу Spine.
+Задача выполнена!
