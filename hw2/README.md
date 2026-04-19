@@ -131,3 +131,43 @@ router ospf 1
    max-lsa 12000
 !
 end
+```
+
+L1
+
+```bash
+hostname L1
+!
+interface Ethernet7
+   description TO_SPINE_2
+   mtu 9214
+   no switchport
+   ip address 10.10.21.2/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet8
+   description TO_SPINE_1
+   mtu 9214
+   no switchport
+   ip address 10.10.11.2/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Loopback0
+   ip address 10.10.10.11/32
+   ip ospf area 0.0.0.0
+!
+interface Management1
+!
+ip routing
+!
+router ospf 1
+   router-id 10.10.10.3
+   passive-interface default
+   no passive-interface Ethernet7
+   no passive-interface Ethernet8
+   max-lsa 12000
+!
+end
+```
