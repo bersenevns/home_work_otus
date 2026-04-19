@@ -88,7 +88,8 @@ router ospf 1
    max-lsa 12000
 !
 end
-</details>```
+</details>
+```
 
 ### S2
 ```bash
