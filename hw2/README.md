@@ -89,7 +89,7 @@ router ospf 1
 !
 end
 </details>
-```bash
+```
 
 ### S2
 ```bash
