@@ -49,4 +49,27 @@
 ### S1
 
 ```bash
-# вставь сюда конфиг S1
+S1#sh run
+! Command: show running-config
+! device: S1 (vEOS-lab, EOS-4.29.2F)
+!
+! boot system flash:/vEOS-lab.swi
+!
+no aaa root
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model ribd
+!
+hostname S1
+!
+spanning-tree mode mstp
+!
+interface Ethernet1
+   description TO_LEAF_1
+   mtu 9214
+   no switchport
+   ip address 10.10.11.1/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
