@@ -171,3 +171,83 @@ router ospf 1
 !
 end
 ```
+
+L2
+
+```bash
+hostname L2
+!
+interface Ethernet7
+   description TO_SPINE_2
+   mtu 9214
+   no switchport
+   ip address 10.10.22.2/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet8
+   description TO_SPINE_1
+   mtu 9214
+   no switchport
+   ip address 10.10.12.2/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Loopback0
+   ip address 10.10.10.12/32
+   ip ospf area 0.0.0.0
+!
+interface Management1
+!
+ip routing
+!
+router ospf 1
+   router-id 10.10.10.4
+   passive-interface default
+   no passive-interface Ethernet7
+   no passive-interface Ethernet8
+   max-lsa 12000
+!
+end
+```
+
+L3
+
+```bash
+hostname L3
+!
+interface Ethernet7
+   description TO_SPINE_2
+   mtu 9214
+   no switchport
+   ip address 10.10.23.2/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet8
+   description TO_SPINE_1
+   mtu 9214
+   no switchport
+   ip address 10.10.13.2/30
+   ip ospf network point-to-point
+   ip ospf area 0.0.0.0
+!
+interface Ethernet9
+!
+interface Loopback0
+   ip address 10.10.10.13/32
+   ip ospf area 0.0.0.0
+!
+interface Management1
+!
+ip routing
+!
+router ospf 1
+   router-id 10.10.10.5
+   passive-interface default
+   no passive-interface Ethernet7
+   no passive-interface Ethernet8
+   max-lsa 12000
+!
+end
+```
