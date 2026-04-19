@@ -35,10 +35,11 @@
 
 ## ⚙️ Конфигурация
 
-1) На интерфейсах настроен MTU 9214
-2) Настроен router-id
-3) По умолчанию все интерфейсы в OSPF являются пассивными
-4) Network-type Point-to-point
+1) Включен роутинг
+2) На интерфейсах настроен MTU 9214
+3) Настроен router-id
+4) По умолчанию все интерфейсы в OSPF являются пассивными
+5) Network-type Point-to-point
 
 Конфигурация устройст представлена ниже, лишние строки удалены в целях читаемости.
 
@@ -91,8 +92,6 @@ end
 ```bash
 hostname S2
 !
-spanning-tree mode mstp
-!
 interface Ethernet1
    description TO_LEAF_1
    mtu 9214
@@ -120,8 +119,6 @@ interface Ethernet3
 interface Loopback0
    ip address 10.10.10.2/32
    ip ospf area 0.0.0.0
-!
-interface Management1
 !
 ip routing
 !
