@@ -19,7 +19,7 @@
 
 ## 🌐 Адресация
 
-Логика адресации представлена [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw1/README.md). Добавлены loopback.
+Логика адресации и коммутация представлены [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw1/README.md). Добавлены только loopback.
 
 ### Loopback-интерфейсы
 
@@ -105,3 +105,4 @@ router ospf 1
    max-lsa 12000
 !
 end
+```
