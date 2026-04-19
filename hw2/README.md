@@ -45,7 +45,6 @@
 
 <details>
 <summary>Показать конфигурацию S1</summary>
-
 ```bash
 hostname S1
 !
