@@ -1,4 +1,4 @@
-# OSPF Underlay (Spine–Leaf)
+# OSPF Underlay
 
 ## Цель
 
