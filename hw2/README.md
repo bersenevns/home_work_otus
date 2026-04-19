@@ -35,24 +35,17 @@
 
 ## ⚙️ Конфигурация
 
+1) На интерфейсах настроен MTU 9214
+2) Настроен router-id
+3) По умолчанию все интерфейсы в OSPF являются пассивными
+4) Network-type Point-to-point
+
+Конфигурация устройст представлена ниже, лишние строки удалены в целях читаемости.
+
 ### S1
 
 ```bash
-S1#sh run
-! Command: show running-config
-! device: S1 (vEOS-lab, EOS-4.29.2F)
-!
-! boot system flash:/vEOS-lab.swi
-!
-no aaa root
-!
-transceiver qsfp default-mode 4x10G
-!
-service routing protocols model ribd
-!
 hostname S1
-!
-spanning-tree mode mstp
 !
 interface Ethernet1
    description TO_LEAF_1
@@ -78,21 +71,9 @@ interface Ethernet3
    ip ospf network point-to-point
    ip ospf area 0.0.0.0
 !
-interface Ethernet4
-!
-interface Ethernet5
-!
-interface Ethernet6
-!
-interface Ethernet7
-!
-interface Ethernet8
-!
 interface Loopback0
    ip address 10.10.10.1/32
    ip ospf area 0.0.0.0
-!
-interface Management1
 !
 ip routing
 !
