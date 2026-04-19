@@ -88,11 +88,11 @@ router ospf 1
    max-lsa 12000
 !
 end
+```
 </details>
 
-```
-
-### S2
+<details>
+<summary>Показать конфигурацию S2</summary>
 ```bash
 hostname S2
 !
@@ -136,8 +136,10 @@ router ospf 1
 !
 end
 ```
+</details>
 
-L1
+<details>
+<summary>Показать конфигурацию L1</summary>
 
 ```bash
 hostname L1
@@ -175,8 +177,10 @@ router ospf 1
 !
 end
 ```
+</details>
 
-L2
+<details>
+<summary>Показать конфигурацию L2</summary>
 
 ```bash
 hostname L2
@@ -214,8 +218,10 @@ router ospf 1
 !
 end
 ```
+</details>
 
-L3
+<details>
+<summary>Показать конфигурацию L3</summary>
 
 ```bash
 hostname L3
@@ -255,3 +261,4 @@ router ospf 1
 !
 end
 ```
+</details>
