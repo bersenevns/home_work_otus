@@ -11,3 +11,7 @@
 ### Домашнее задание №3
 
 [Underlay IS-IS](https://github.com/bersenevns/home_work_otus/blob/main/hw3/README.md)
+
+### Домашнее задание №4
+
+[Underlay BGP](https://github.com/bersenevns/home_work_otus/blob/main/hw4/README.md)
