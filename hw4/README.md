@@ -1,19 +1,25 @@
 
-# IS-IS Underlay
+# BGP Underlay
 
 ## Цель
 
-Настроить протокол динамической маршрутизации IS-IS в качестве underlay-сети для топологии Spine–Leaf (2 Spine + 3 Leaf).
+Настроить протокол динамической маршрутизации BGP в качестве underlay-сети для топологии Spine–Leaf (2 Spine + 3 Leaf).
 
 Цель:
-- обеспечить доступность всех loopback-интерфейсов
-- обеспечить доступность всех point-to-point сетей
+- обеспечить доступность всех loopback Leaf
+- не ожидаем доступность с одного Spine loopback другого Spine (нет необходимости)
 
 ---
 
 ## Схема
 
-![схема](scheme.png)
+В качестве протокола маршрутизации был выбран eBGP в связи с тем, что он позволяет прозрачно определить путь следования пакетов по автономным системам (AS-Path), а также не требует дополнительной команды next-hop-self для подстановки своего ip-адреса интерфейса при передаче мрашрутной информации, поскольку это его поведение по умолчанию. Такое поведение немного упрощает конфигурацию и снижает вероятность ошибки.
+
+Каждый Leaf имеет свой номер AS, в то время как все Spine существуют в одной автономной системе. Это упрощает вид таблицы маршрутов BGP (show ip bgp), что полезно при troubleshooting.
+
+P2P сети решено не анонсировать, чтобы не засорять таблицы маршрутизации.
+
+![схема](scheme_bgp.png)
 
 ---
 
@@ -59,10 +65,10 @@
 2) На интерфейсах настроен MTU 9000
 3) Настроен router-id
 4) Настроен BFD
-5) Network-type Point-to-point
-6) Настроена аутентификация md5 для IS-IS
-7) Настроен параметр is-hostname для читаемости соседства
-8) Принято решение делать соседство level-2-only для возможности дальнейшего масштабирования и уменьшения flood
+5) Измменены таймеры BGP 3s keep-alive, 9s hold
+6) Настроена аутентификация для BGP
+7) Настроен ECMP
+8) Конфигурация с использованием peer group для удобства
 
 Конфигурация устройств представлена ниже, лишние строки удалены в целях читаемости.
 
@@ -73,51 +79,44 @@
 hostname S1
 !
 interface Ethernet1
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.11.1/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet2
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.12.1/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet3
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.13.1/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
-!
 interface Loopback0
    ip address 10.10.10.1/32
-   isis enable UNDERLAY
 !
 ip routing
 !
-router isis UNDERLAY
-   net 49.0001.0100.1001.0001.00
-   is-hostname S1
-   router-id ipv4 10.10.10.1
-   is-type level-2
-   authentication mode md5 level-2
-   authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
+router bgp 65500
+   router-id 10.10.10.1
+   timers bgp 3 9
+   maximum-paths 10 ecmp 10
+   neighbor LEAFS peer group
+   neighbor LEAFS bfd
+   neighbor LEAFS password 7 /3ZkUd1QPGBJ7Vztltm37A==
+   neighbor 10.10.11.2 peer group LEAFS
+   neighbor 10.10.11.2 remote-as 65501
+   neighbor 10.10.11.2 description L1
+   neighbor 10.10.12.2 peer group LEAFS
+   neighbor 10.10.12.2 remote-as 65502
+   neighbor 10.10.12.2 description L2
+   neighbor 10.10.13.2 peer group LEAFS
+   neighbor 10.10.13.2 remote-as 65503
+   neighbor 10.10.13.2 description L3
    !
-   address-family ipv4 unicast
-      maximum-paths 2
+   address-family ipv4
+      neighbor LEAFS activate
+      network 10.10.10.1/32
 !
 end
 ```
@@ -130,51 +129,45 @@ end
 hostname S2
 !
 interface Ethernet1
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.21.1/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet2
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.22.1/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet3
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.23.1/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Loopback0
    ip address 10.10.10.2/32
-   isis enable UNDERLAY
 !
 ip routing
 !
-router isis UNDERLAY
-   net 49.0001.0100.1001.0002.00
-   is-hostname S2
-   router-id ipv4 10.10.10.2
-   is-type level-2
-   authentication mode md5 level-2
-   authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
+router bgp 65500
+   router-id 10.10.10.2
+   timers bgp 3 9
+   maximum-paths 10 ecmp 10
+   neighbor LEAFS peer group
+   neighbor LEAFS bfd
+   neighbor LEAFS password 7 /3ZkUd1QPGBJ7Vztltm37A==
+   neighbor 10.10.21.2 peer group LEAFS
+   neighbor 10.10.21.2 remote-as 65501
+   neighbor 10.10.21.2 description L1
+   neighbor 10.10.22.2 peer group LEAFS
+   neighbor 10.10.22.2 remote-as 65502
+   neighbor 10.10.22.2 description L2
+   neighbor 10.10.23.2 peer group LEAFS
+   neighbor 10.10.23.2 remote-as 65503
+   neighbor 10.10.23.2 description L3
    !
-   address-family ipv4 unicast
-      maximum-paths 2
+   address-family ipv4
+      neighbor LEAFS activate
+      network 10.10.10.2/32
 !
 end
 ```
@@ -187,41 +180,36 @@ end
 hostname L1
 !
 interface Ethernet7
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.21.2/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet8
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.11.2/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Loopback0
    ip address 10.10.10.11/32
-   isis enable UNDERLAY
 !
 ip routing
 !
-router isis UNDERLAY
-   net 49.0001.0100.1001.0011.00
-   is-hostname L1
-   router-id ipv4 10.10.10.11
-   is-type level-2
-   authentication mode md5 level-2
-   authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
+router bgp 65501
+   router-id 10.10.10.11
+   timers bgp 3 9
+   maximum-paths 2 ecmp 2
+   neighbor SPINES peer group
+   neighbor SPINES remote-as 65500
+   neighbor SPINES bfd
+   neighbor SPINES password 7 fDU2u9m4KeL5vrpR0VRCug==
+   neighbor 10.10.11.1 peer group SPINES
+   neighbor 10.10.11.1 description S1
+   neighbor 10.10.21.1 peer group SPINES
+   neighbor 10.10.21.1 description S2
    !
-   address-family ipv4 unicast
-      maximum-paths 2
+   address-family ipv4
+      neighbor SPINES activate
+      network 10.10.10.11/32
 !
 end
 ```
@@ -234,41 +222,36 @@ end
 hostname L2
 !
 interface Ethernet7
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.22.2/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet8
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.12.2/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Loopback0
    ip address 10.10.10.12/32
-   isis enable UNDERLAY
 !
 ip routing
 !
-router isis UNDERLAY
-   net 49.0001.0100.1001.0012.00
-   is-hostname L2
-   router-id ipv4 10.10.10.12
-   is-type level-2
-   authentication mode md5 level-2
-   authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
+router bgp 65502
+   router-id 10.10.10.12
+   timers bgp 3 9
+   maximum-paths 2 ecmp 2
+   neighbor SPINES peer group
+   neighbor SPINES remote-as 65500
+   neighbor SPINES bfd
+   neighbor SPINES password 7 fDU2u9m4KeL5vrpR0VRCug==
+   neighbor 10.10.12.1 peer group SPINES
+   neighbor 10.10.12.1 description S1
+   neighbor 10.10.22.1 peer group SPINES
+   neighbor 10.10.22.1 description S2
    !
-   address-family ipv4 unicast
-      maximum-paths 2
+   address-family ipv4
+      neighbor SPINES activate
+      network 10.10.10.12/32
 !
 end
 ```
@@ -281,41 +264,36 @@ end
 hostname L3
 !
 interface Ethernet7
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.23.2/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Ethernet8
-   mtu 9000
+   mtu 9214
    no switchport
    ip address 10.10.13.2/30
-   isis enable UNDERLAY
-   isis bfd
-   isis network point-to-point
-   isis authentication mode md5 level-2
-   isis authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
 !
 interface Loopback0
    ip address 10.10.10.13/32
-   isis enable UNDERLAY
 !
 ip routing
 !
-router isis UNDERLAY
-   net 49.0001.0100.1001.0013.00
-   is-hostname L3
-   router-id ipv4 10.10.10.13
-   is-type level-2
-   authentication mode md5 level-2
-   authentication key 7 cvOJP+1oA0lBd9aIu3gTUA== level-2
+router bgp 65503
+   router-id 10.10.10.13
+   timers bgp 3 9
+   maximum-paths 2 ecmp 2
+   neighbor SPINES peer group
+   neighbor SPINES remote-as 65500
+   neighbor SPINES bfd
+   neighbor SPINES password 7 fDU2u9m4KeL5vrpR0VRCug==
+   neighbor 10.10.13.1 peer group SPINES
+   neighbor 10.10.13.1 description S1
+   neighbor 10.10.23.1 peer group SPINES
+   neighbor 10.10.23.1 description S2
    !
-   address-family ipv4 unicast
-      maximum-paths 2
+   address-family ipv4
+      neighbor SPINES activate
+      network 10.10.10.13/32
 !
 end
 ```
@@ -323,43 +301,42 @@ end
 
 ## Результаты
 
-Проверим таблицу соседства IS-IS, таблицу маршрутизации, работоспособность BFD, выполним ping до удаленного loopback.
+Проверим таблицу соседства BGP, таблицу полученных от соседей префиксов, таблицу маршрутизации, работоспособность BFD, выполним ping и traceroute до удаленного loopback.
 Возьмем в качестве пример S1 из спайнов и L3 из лифов.
 
 <details>
 <summary><b>Показать результаты на S1</b></summary>
 
 ```bash
-S1#sh isis neighbors 
- 
-Instance  VRF      System Id        Type Interface          SNPA              State Hold time   Circuit Id       
+S1#sh ip bgp summary 
+Router identifier 10.10.10.1, local AS number 65500
+  Description              Neighbor         V  AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  L1                       10.10.11.2       4  65501           1613      1614    0    0 00:13:55 Estab   1      1
+  L2                       10.10.12.2       4  65502           1286      1286    0    0 01:03:53 Estab   1      1
+  L3                       10.10.13.2       4  65503           1277      1277    0    0 01:03:25 Estab   1      1         
    
-UNDERLAY  default  L1               L2   Ethernet1          P2P               UP    23          15               
-   
-UNDERLAY  default  L2               L2   Ethernet2          P2P               UP    24          14               
-   
-UNDERLAY  default  L3               L2   Ethernet3          P2P               UP    27          14               
-   
-S1#sh ip route
- C        10.10.10.1/32 is directly connected, Loopback0 #свой loopback
- I L2     10.10.10.2/32 [115/30] via 10.10.11.2, Ethernet1 #loopback S2
-                                 via 10.10.12.2, Ethernet2 #loopback S2
- I L2     10.10.10.11/32 [115/20] via 10.10.11.2, Ethernet1 #loopback L1
- I L2     10.10.10.12/32 [115/20] via 10.10.12.2, Ethernet2 #loopback L2
- I L2     10.10.10.13/32 [115/20] via 10.10.13.2, Ethernet3 #loopback L3
- C        10.10.11.0/30 is directly connected, Ethernet1 #Link S1-L1
- C        10.10.12.0/30 is directly connected, Ethernet2 #Link S1-L2
- C        10.10.13.0/30 is directly connected, Ethernet3 #Link S1-L3
- I L2     10.10.21.0/30 [115/20] via 10.10.11.2, Ethernet1 #Link S2-L1
- I L2     10.10.22.0/30 [115/20] via 10.10.12.2, Ethernet2 #Link S2-L2
- I L2     10.10.23.0/30 [115/20] via 10.10.13.2, Ethernet3 #Link S2-L3
+S1#sh ip bgp
+
+         Network                Next Hop            Metric  LocPref Weight  Path
+ * >     10.10.10.1/32          -                     0       0       -       i
+ * >     10.10.10.11/32         10.10.11.2            0       100     0       65501 i
+ * >     10.10.10.12/32         10.10.12.2            0       100     0       65502 i
+ * >     10.10.10.13/32         10.10.13.2            0       100     0       65503 i
+
+S1#sh ip route bgp
+
+ B E      10.10.10.11/32 [200/0] via 10.10.11.2, Ethernet1 # loopback Leaf-1
+ B E      10.10.10.12/32 [200/0] via 10.10.12.2, Ethernet2 # loopback Leaf-2
+ B E      10.10.10.13/32 [200/0] via 10.10.13.2, Ethernet3 # loopback Leaf-3
 
 S1#sh bfd peers 
+VRF name: default
+-----------------
 DstAddr        MyDisc    YourDisc  Interface/Transport    Type          LastUp 
 ---------- ----------- ----------- -------------------- ------- ---------------
-10.10.11.2 3506383235  1114058778        Ethernet1(13)  normal  04/23/26 08:36 
-10.10.12.2 2797557802   514908787        Ethernet2(14)  normal  04/23/26 08:32 
-10.10.13.2 1698202898  2306285918        Ethernet3(15)  normal  04/23/26 08:37 
+10.10.11.2 3531541637  1354799549        Ethernet1(13)  normal  04/30/26 11:18 
+10.10.12.2 1061476459  3237236584        Ethernet2(14)  normal  04/30/26 10:28 
+10.10.13.2  870682782   775584952        Ethernet3(15)  normal  04/30/26 10:29 
 
    LastDown            LastDiag    State
 -------------- ------------------- -----
@@ -367,16 +344,21 @@ DstAddr        MyDisc    YourDisc  Interface/Transport    Type          LastUp
          NA       No Diagnostic       Up
          NA       No Diagnostic       Up
 
-S1#ping 10.10.10.13
-PING 10.10.10.13 (10.10.10.13) 72(100) bytes of data.
-80 bytes from 10.10.10.13: icmp_seq=1 ttl=64 time=4.40 ms
-80 bytes from 10.10.10.13: icmp_seq=2 ttl=64 time=2.01 ms
-80 bytes from 10.10.10.13: icmp_seq=3 ttl=64 time=2.22 ms
-80 bytes from 10.10.10.13: icmp_seq=4 ttl=64 time=2.31 ms
-80 bytes from 10.10.10.13: icmp_seq=5 ttl=64 time=2.27 ms
+S1#ping 10.10.10.12
+PING 10.10.10.12 (10.10.10.12) 72(100) bytes of data.
+80 bytes from 10.10.10.12: icmp_seq=1 ttl=64 time=4.60 ms
+80 bytes from 10.10.10.12: icmp_seq=2 ttl=64 time=1.96 ms
+80 bytes from 10.10.10.12: icmp_seq=3 ttl=64 time=1.96 ms
+80 bytes from 10.10.10.12: icmp_seq=4 ttl=64 time=2.90 ms
+80 bytes from 10.10.10.12: icmp_seq=5 ttl=64 time=1.94 ms
 
---- 10.10.10.13 ping statistics ---
+--- 10.10.10.12 ping statistics ---
 5 packets transmitted, 5 received, 0% packet loss, time 19ms
+rtt min/avg/max/mdev = 1.949/2.677/4.608/1.034 ms, ipg/ewma 4.869/3.615 ms
+
+S1#traceroute 10.10.10.12
+traceroute to 10.10.10.12 (10.10.10.12), 30 hops max, 60 byte packets
+ 1  10.10.10.12 (10.10.10.12)  5.501 ms  5.050 ms  5.491 ms
 ```
 </details>
 
@@ -384,54 +366,65 @@ PING 10.10.10.13 (10.10.10.13) 72(100) bytes of data.
 <summary><b>Показать результаты на L3</b></summary>
 
 ```bash
-L3#sh isis neighbors 
- 
-Instance  VRF      System Id        Type Interface          SNPA              State Hold time   Circuit Id       
-   
-UNDERLAY  default  S1               L2   Ethernet8          P2P               UP    27          0F               
-   
-UNDERLAY  default  S2               L2   Ethernet7          P2P               UP    24          0F
+L3#sh ip bgp summary
 
-L3#sh ip route
+Router identifier 10.10.10.13, local AS number 65503
+  Description              Neighbor         V  AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  S1                       10.10.13.1       4  65500           1372      1372    0    0 01:08:11 Estab   3      3
+  S2                       10.10.23.1       4  65500           1340      1342    0    0 00:57:08 Estab   3      3
 
- I L2     10.10.10.1/32 [115/20] via 10.10.13.1, Ethernet8 #looback S1
- I L2     10.10.10.2/32 [115/20] via 10.10.23.1, Ethernet7 #looback S2
- I L2     10.10.10.11/32 [115/30] via 10.10.23.1, Ethernet7 #looback L1
-                                  via 10.10.13.1, Ethernet8 #looback L1
- I L2     10.10.10.12/32 [115/30] via 10.10.23.1, Ethernet7 #looback L2
-                                  via 10.10.13.1, Ethernet8 #looback L2
- C        10.10.10.13/32 is directly connected, Loopback0 #свой loopback
- I L2     10.10.11.0/30 [115/20] via 10.10.13.1, Ethernet8 #Link S1-L1
- I L2     10.10.12.0/30 [115/20] via 10.10.13.1, Ethernet8 #Link S1-L2
- C        10.10.13.0/30 is directly connected, Ethernet8 #Link S1-L3
- I L2     10.10.21.0/30 [115/20] via 10.10.23.1, Ethernet7 #Link S2-L1
- I L2     10.10.22.0/30 [115/20] via 10.10.23.1, Ethernet7 #Link S2-L2
- C        10.10.23.0/30 is directly connected, Ethernet7 #Link S2-L3
+L3#sh ip bgp 
 
-L3#sh bfd peers 
+         Network                Next Hop            Metric  LocPref Weight  Path
+ * >     10.10.10.1/32          10.10.13.1            0       100     0       65500 i
+ * >     10.10.10.2/32          10.10.23.1            0       100     0       65500 i
+ * >Ec   10.10.10.11/32         10.10.23.1            0       100     0       65500 65501 i
+ *  ec   10.10.10.11/32         10.10.13.1            0       100     0       65500 65501 i
+ * >Ec   10.10.10.12/32         10.10.13.1            0       100     0       65500 65502 i
+ *  ec   10.10.10.12/32         10.10.23.1            0       100     0       65500 65502 i
+ * >     10.10.10.13/32         -                     0       0       -       i
+
+L3#sh ip route bgp
+
+ B E      10.10.10.1/32 [200/0] via 10.10.13.1, Ethernet8 # loopback Spine-1
+ B E      10.10.10.2/32 [200/0] via 10.10.23.1, Ethernet7 # loopback Spine-2
+ B E      10.10.10.11/32 [200/0] via 10.10.23.1, Ethernet7 # loopback Leaf-1
+                                 via 10.10.13.1, Ethernet8 # loopback Leaf-1
+ B E      10.10.10.12/32 [200/0] via 10.10.23.1, Ethernet7 # loopback Leaf-2
+                                 via 10.10.13.1, Ethernet8 # loopback Leaf-2
+
+L3#sh bfd peer
+VRF name: default
+-----------------
 DstAddr        MyDisc    YourDisc  Interface/Transport    Type          LastUp 
 ---------- ----------- ----------- -------------------- ------- ---------------
-10.10.13.1 2306285918  1698202898        Ethernet8(20)  normal  04/23/26 08:37 
-10.10.23.1 3367167881   224527217        Ethernet7(19)  normal  04/23/26 08:37 
+10.10.13.1  775584952   870682782        Ethernet8(20)  normal  04/30/26 10:29 
+10.10.23.1 3235683260  1962359758        Ethernet7(19)  normal  04/30/26 10:31 
 
    LastDown            LastDiag    State
 -------------- ------------------- -----
          NA       No Diagnostic       Up
          NA       No Diagnostic       Up
 
-L3#ping 10.10.10.11
-PING 10.10.10.11 (10.10.10.11) 72(100) bytes of data.
-80 bytes from 10.10.10.11: icmp_seq=1 ttl=63 time=8.41 ms
-80 bytes from 10.10.10.11: icmp_seq=2 ttl=63 time=4.56 ms
-80 bytes from 10.10.10.11: icmp_seq=3 ttl=63 time=4.59 ms
-80 bytes from 10.10.10.11: icmp_seq=4 ttl=63 time=4.52 ms
-80 bytes from 10.10.10.11: icmp_seq=5 ttl=63 time=3.72 ms
+L3#ping 10.10.10.12 source lo0
+PING 10.10.10.12 (10.10.10.12) from 10.10.10.13 : 72(100) bytes of data.
+80 bytes from 10.10.10.12: icmp_seq=1 ttl=63 time=6.50 ms
+80 bytes from 10.10.10.12: icmp_seq=2 ttl=63 time=4.70 ms
+80 bytes from 10.10.10.12: icmp_seq=3 ttl=63 time=5.19 ms
+80 bytes from 10.10.10.12: icmp_seq=4 ttl=63 time=5.65 ms
+80 bytes from 10.10.10.12: icmp_seq=5 ttl=63 time=5.09 ms
 
---- 10.10.10.11 ping statistics ---
-5 packets transmitted, 5 received, 0% packet loss, time 33ms
+--- 10.10.10.12 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 29ms
+rtt min/avg/max/mdev = 4.706/5.429/6.507/0.618 ms, ipg/ewma 7.346/5.959 ms
+
+L3#traceroute 10.10.10.12 source lo0
+traceroute to 10.10.10.12 (10.10.10.12), 30 hops max, 60 byte packets
+ 1  10.10.13.1 (10.10.13.1)  7.043 ms  6.793 ms  6.925 ms
+ 2  10.10.10.12 (10.10.10.12)  16.425 ms  16.394 ms  22.516 ms
 ```
 </details>
 
-Все P2P сети известны, все loopback известны. На Spine 1 известно два равноценных маршрута до Loopback S2 (настройка maximum-path 2), а на Leaf3 известно по 2 маршрута до Loopback L1 и L2 (по числу Spine).
+Все необходимые loopback известны. На Leaf3 известно по 2 маршрута до Loopback L1 и L2 (по числу Spine). Оба Spine ничего не знают о loopback интерфейсов друг друга, но в этом нет необходимости в данной архитектуре, потому что они transit only.
 
 Ping успешен. Задача выполнена!
