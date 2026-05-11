@@ -649,4 +649,57 @@ VPCS> ping 192.168.20.33
 ```
 </details>
 
+<details>
+<summary><b>Посмотрим, что изменилось на Leaf-1</b></summary>
+
+```bash
+L1#sh bgp evpn route-type mac-ip
+
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >Ec    RD: 655:2 mac-ip 1010 0050.7966.6813
+                                 10.10.10.12           -       100     0       65500 65502 i
+ *  ec    RD: 655:2 mac-ip 1010 0050.7966.6813
+                                 10.10.10.12           -       100     0       65500 65502 i
+ * >Ec    RD: 655:3 mac-ip 1010 0050.7966.6815
+                                 10.10.10.13           -       100     0       65500 65503 i
+ *  ec    RD: 655:3 mac-ip 1010 0050.7966.6815
+                                 10.10.10.13           -       100     0       65500 65503 i
+ * >      RD: 655:1 mac-ip 1010 0050.7966.6817
+                                 -                     -       -       0       i
+ * >      RD: 655:1 mac-ip 2020 0050.7966.6812
+                                 -                     -       -       0       i
+ * >Ec    RD: 655:2 mac-ip 2020 0050.7966.6814
+                                 10.10.10.12           -       100     0       65500 65502 i
+ *  ec    RD: 655:2 mac-ip 2020 0050.7966.6814
+                                 10.10.10.12           -       100     0       65500 65502 i
+ * >Ec    RD: 655:3 mac-ip 2020 0050.7966.6816
+                                 10.10.10.13           -       100     0       65500 65503 i
+ *  ec    RD: 655:3 mac-ip 2020 0050.7966.6816
+                                 10.10.10.13           -       100     0       65500 65503 i
+
+L1#sh vxlan vtep
+Remote VTEPS for Vxlan1:
+
+VTEP              Tunnel Type(s)
+----------------- --------------
+10.10.10.12       flood, unicast
+10.10.10.13       flood, unicast
+
+Total number of remote VTEPS:  2
+L1#sh mac address-table 
+          Mac Address Table
+------------------------------------------------------------------
+
+Vlan    Mac Address       Type        Ports      Moves   Last Move
+----    -----------       ----        -----      -----   ---------
+  10    0050.7966.6813    DYNAMIC     Vx1        1       0:00:16 ago
+  10    0050.7966.6815    DYNAMIC     Vx1        1       0:01:16 ago
+  10    0050.7966.6817    DYNAMIC     Et1        1       0:01:16 ago
+  20    0050.7966.6812    DYNAMIC     Et2        1       0:05:22 ago
+  20    0050.7966.6814    DYNAMIC     Vx1        1       0:00:10 ago
+  20    0050.7966.6816    DYNAMIC     Vx1        1       0:05:14 ago
+
+```
+</details>
+
 Ping успешен. Задача выполнена!
