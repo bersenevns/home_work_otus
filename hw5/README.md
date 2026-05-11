@@ -579,7 +579,7 @@ PING 10.10.10.12 (10.10.10.12) from 10.10.10.13 : 72(100) bytes of data.
 ```
 </details>
 
-Все необходимые loopback известны и доступны по сети. Сессии evpn также установлены и мы видим маршруты type-3 (IMET). Теперь попробуем с хоста 192.168.10.11 (Leaf-1) сделать ping до 192.168.10.22 (Leaf-2) и 192.168.10.22 (Leaf-3).
+Все необходимые loopback известны и доступны по сети. Сессии evpn также установлены, и мы видим маршруты type-3 (IMET). Теперь попробуем с хоста 192.168.10.11 (Leaf-1) сделать ping до 192.168.10.22 (Leaf-2) и 192.168.10.33 (Leaf-3). А также с хоста 192.168.20.11 (Leaf-1) сделать ping до 192.168.20.22 (Leaf-2) и 192.168.20.33 (Leaf-3), чтобы убедиться, что конфигурация работает для двух разных VLAN.
 
 <details>
 <summary><b>Показать результаты на 192.168.10.11</b></summary>
@@ -611,6 +611,40 @@ VPCS> ping 192.168.10.33
 84 bytes from 192.168.10.33 icmp_seq=3 ttl=64 time=9.968 ms
 84 bytes from 192.168.10.33 icmp_seq=4 ttl=64 time=10.896 ms
 84 bytes from 192.168.10.33 icmp_seq=5 ttl=64 time=10.138 ms
+
+```
+</details>
+
+<details>
+<summary><b>Показать результаты на 192.168.20.11</b></summary>
+
+```bash
+VPCS> sh ip
+
+NAME        : VPCS[1]
+IP/MASK     : 192.168.20.11/24
+GATEWAY     : 0.0.0.0
+DNS         : 
+MAC         : 00:50:79:66:68:12
+LPORT       : 20000
+RHOST:PORT  : 127.0.0.1:30000
+MTU         : 1500
+
+VPCS> ping 192.168.20.22
+
+84 bytes from 192.168.20.22 icmp_seq=1 ttl=64 time=10.171 ms
+84 bytes from 192.168.20.22 icmp_seq=2 ttl=64 time=11.027 ms
+84 bytes from 192.168.20.22 icmp_seq=3 ttl=64 time=10.008 ms
+84 bytes from 192.168.20.22 icmp_seq=4 ttl=64 time=12.264 ms
+84 bytes from 192.168.20.22 icmp_seq=5 ttl=64 time=10.244 ms
+
+VPCS> ping 192.168.20.33
+
+192.168.20.33 icmp_seq=1 timeout
+84 bytes from 192.168.20.33 icmp_seq=2 ttl=64 time=13.490 ms
+84 bytes from 192.168.20.33 icmp_seq=3 ttl=64 time=10.158 ms
+84 bytes from 192.168.20.33 icmp_seq=4 ttl=64 time=15.049 ms
+84 bytes from 192.168.20.33 icmp_seq=5 ttl=64 time=11.738 ms
 
 ```
 </details>
