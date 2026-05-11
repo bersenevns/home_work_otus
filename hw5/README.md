@@ -422,130 +422,197 @@ end
 
 ## Результаты
 
-Проверим таблицу соседства BGP, таблицу полученных от соседей префиксов, таблицу маршрутизации, работоспособность BFD, выполним ping и traceroute до удаленного loopback.
+Проверим таблицу соседства BGP, таблицу полученных от соседей префиксов ipv4, таблицу маршрутизации BGP, таблицу evpn route-type 2,3, выполним ping до удаленных loopback.
 Возьмем в качестве пример S1 из спайнов и L3 из лифов.
 
 <details>
 <summary><b>Показать результаты на S1</b></summary>
 
 ```bash
-S1#sh ip bgp summary 
+S1#sh bgp summary 
+BGP summary information for VRF default
 Router identifier 10.10.10.1, local AS number 65500
-  Description              Neighbor         V  AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
-  L1                       10.10.11.2       4  65501           1613      1614    0    0 00:13:55 Estab   1      1
-  L2                       10.10.12.2       4  65502           1286      1286    0    0 01:03:53 Estab   1      1
-  L3                       10.10.13.2       4  65503           1277      1277    0    0 01:03:25 Estab   1      1         
+Neighbor            AS Session State AFI/SAFI                AFI/SAFI State   NLRI Rcd   NLRI Acc
+---------- ----------- ------------- ----------------------- -------------- ---------- ----------
+10.10.11.2       65501 Established   IPv4 Unicast            Negotiated              1          1
+10.10.11.2       65501 Established   L2VPN EVPN              Negotiated              2          2
+10.10.12.2       65502 Established   IPv4 Unicast            Negotiated              1          1
+10.10.12.2       65502 Established   L2VPN EVPN              Negotiated              2          2
+10.10.13.2       65503 Established   IPv4 Unicast            Negotiated              1          1
+10.10.13.2       65503 Established   L2VPN EVPN              Negotiated              2          2        
    
-S1#sh ip bgp
+S1#sh bgp ipv4 unicast
 
-         Network                Next Hop            Metric  LocPref Weight  Path
- * >     10.10.10.1/32          -                     0       0       -       i
- * >     10.10.10.11/32         10.10.11.2            0       100     0       65501 i
- * >     10.10.10.12/32         10.10.12.2            0       100     0       65502 i
- * >     10.10.10.13/32         10.10.13.2            0       100     0       65503 i
+          Network                Next Hop              Metric  AIGP       LocPref Weight  Path
+ * >      10.10.10.1/32          -                     -       -          -       0       i
+ * >      10.10.10.11/32         10.10.11.2            0       -          100     0       65501 i
+ * >      10.10.10.12/32         10.10.12.2            0       -          100     0       65502 i
+ * >      10.10.10.13/32         10.10.13.2            0       -          100     0       65503 i
 
 S1#sh ip route bgp
 
- B E      10.10.10.11/32 [200/0] via 10.10.11.2, Ethernet1 # loopback Leaf-1
- B E      10.10.10.12/32 [200/0] via 10.10.12.2, Ethernet2 # loopback Leaf-2
- B E      10.10.10.13/32 [200/0] via 10.10.13.2, Ethernet3 # loopback Leaf-3
+ B E      10.10.10.11/32 [200/0] via 10.10.11.2, Ethernet1
+ B E      10.10.10.12/32 [200/0] via 10.10.12.2, Ethernet2
+ B E      10.10.10.13/32 [200/0] via 10.10.13.2, Ethernet3
 
-S1#sh bfd peers 
-VRF name: default
------------------
-DstAddr        MyDisc    YourDisc  Interface/Transport    Type          LastUp 
----------- ----------- ----------- -------------------- ------- ---------------
-10.10.11.2 3531541637  1354799549        Ethernet1(13)  normal  04/30/26 11:18 
-10.10.12.2 1061476459  3237236584        Ethernet2(14)  normal  04/30/26 10:28 
-10.10.13.2  870682782   775584952        Ethernet3(15)  normal  04/30/26 10:29 
+S1#sh bgp evpn
 
-   LastDown            LastDiag    State
--------------- ------------------- -----
-         NA       No Diagnostic       Up
-         NA       No Diagnostic       Up
-         NA       No Diagnostic       Up
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >      RD: 655:3 mac-ip 2020 f68a.41ac.2c2f
+                                 10.10.10.13           -       100     0       65503 i
+ * >      RD: 655:1 imet 1010 10.10.10.11
+                                 10.10.10.11           -       100     0       65501 i
+ * >      RD: 655:2 imet 1010 10.10.10.12
+                                 10.10.10.12           -       100     0       65502 i
+ * >      RD: 655:3 imet 1010 10.10.10.13
+                                 10.10.10.13           -       100     0       65503 i
+ * >      RD: 655:1 imet 2020 10.10.10.11
+                                 10.10.10.11           -       100     0       65501 i
+ * >      RD: 655:2 imet 2020 10.10.10.12
+                                 10.10.10.12           -       100     0       65502 i
+ * >      RD: 655:3 imet 2020 10.10.10.13
+                                 10.10.10.13           -       100     0       65503 i
+
+S1#ping 10.10.10.11
+PING 10.10.10.11 (10.10.10.11) 72(100) bytes of data.
+80 bytes from 10.10.10.11: icmp_seq=1 ttl=64 time=4.03 ms
+80 bytes from 10.10.10.11: icmp_seq=2 ttl=64 time=2.48 ms
+80 bytes from 10.10.10.11: icmp_seq=3 ttl=64 time=2.36 ms
+80 bytes from 10.10.10.11: icmp_seq=4 ttl=64 time=2.43 ms
+80 bytes from 10.10.10.11: icmp_seq=5 ttl=64 time=2.88 ms
 
 S1#ping 10.10.10.12
 PING 10.10.10.12 (10.10.10.12) 72(100) bytes of data.
-80 bytes from 10.10.10.12: icmp_seq=1 ttl=64 time=4.60 ms
-80 bytes from 10.10.10.12: icmp_seq=2 ttl=64 time=1.96 ms
-80 bytes from 10.10.10.12: icmp_seq=3 ttl=64 time=1.96 ms
-80 bytes from 10.10.10.12: icmp_seq=4 ttl=64 time=2.90 ms
-80 bytes from 10.10.10.12: icmp_seq=5 ttl=64 time=1.94 ms
+80 bytes from 10.10.10.12: icmp_seq=1 ttl=64 time=5.63 ms
+80 bytes from 10.10.10.12: icmp_seq=2 ttl=64 time=3.98 ms
+80 bytes from 10.10.10.12: icmp_seq=3 ttl=64 time=4.58 ms
+80 bytes from 10.10.10.12: icmp_seq=4 ttl=64 time=2.54 ms
+80 bytes from 10.10.10.12: icmp_seq=5 ttl=64 time=2.98 ms
 
---- 10.10.10.12 ping statistics ---
-5 packets transmitted, 5 received, 0% packet loss, time 19ms
-rtt min/avg/max/mdev = 1.949/2.677/4.608/1.034 ms, ipg/ewma 4.869/3.615 ms
+S1#ping 10.10.10.13
+PING 10.10.10.13 (10.10.10.13) 72(100) bytes of data.
+80 bytes from 10.10.10.13: icmp_seq=1 ttl=64 time=4.10 ms
+80 bytes from 10.10.10.13: icmp_seq=2 ttl=64 time=2.57 ms
+80 bytes from 10.10.10.13: icmp_seq=3 ttl=64 time=2.41 ms
+80 bytes from 10.10.10.13: icmp_seq=4 ttl=64 time=2.59 ms
+80 bytes from 10.10.10.13: icmp_seq=5 ttl=64 time=2.77 ms
 
-S1#traceroute 10.10.10.12
-traceroute to 10.10.10.12 (10.10.10.12), 30 hops max, 60 byte packets
- 1  10.10.10.12 (10.10.10.12)  5.501 ms  5.050 ms  5.491 ms
 ```
 </details>
+
+На Spine 2 все аналогично, поэтому показывать здесь не буду. Перейдем к Leaf
 
 <details>
 <summary><b>Показать результаты на L3</b></summary>
 
 ```bash
-L3#sh ip bgp summary
-
+L3#sh bgp summary 
+BGP summary information for VRF default
 Router identifier 10.10.10.13, local AS number 65503
-  Description              Neighbor         V  AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
-  S1                       10.10.13.1       4  65500           1372      1372    0    0 01:08:11 Estab   3      3
-  S2                       10.10.23.1       4  65500           1340      1342    0    0 00:57:08 Estab   3      3
+Neighbor            AS Session State AFI/SAFI                AFI/SAFI State   NLRI Rcd   NLRI Acc
+---------- ----------- ------------- ----------------------- -------------- ---------- ----------
+10.10.13.1       65500 Established   IPv4 Unicast            Negotiated              3          3
+10.10.13.1       65500 Established   L2VPN EVPN              Negotiated              4          4
+10.10.23.1       65500 Established   IPv4 Unicast            Negotiated              3          3
+10.10.23.1       65500 Established   L2VPN EVPN              Negotiated              4          4
 
-L3#sh ip bgp 
+L3#sh bgp ipv4 unicast
 
-         Network                Next Hop            Metric  LocPref Weight  Path
- * >     10.10.10.1/32          10.10.13.1            0       100     0       65500 i
- * >     10.10.10.2/32          10.10.23.1            0       100     0       65500 i
- * >Ec   10.10.10.11/32         10.10.23.1            0       100     0       65500 65501 i
- *  ec   10.10.10.11/32         10.10.13.1            0       100     0       65500 65501 i
- * >Ec   10.10.10.12/32         10.10.13.1            0       100     0       65500 65502 i
- *  ec   10.10.10.12/32         10.10.23.1            0       100     0       65500 65502 i
- * >     10.10.10.13/32         -                     0       0       -       i
+          Network                Next Hop              Metric  AIGP       LocPref Weight  Path
+ * >      10.10.10.1/32          10.10.13.1            0       -          100     0       65500 i
+ * >      10.10.10.2/32          10.10.23.1            0       -          100     0       65500 i
+ * >Ec    10.10.10.11/32         10.10.13.1            0       -          100     0       65500 65501 i
+ *  ec    10.10.10.11/32         10.10.23.1            0       -          100     0       65500 65501 i
+ * >Ec    10.10.10.12/32         10.10.13.1            0       -          100     0       65500 65502 i
+ *  ec    10.10.10.12/32         10.10.23.1            0       -          100     0       65500 65502 i
+ * >      10.10.10.13/32         -                     -       -          -       0       i
 
 L3#sh ip route bgp
 
- B E      10.10.10.1/32 [200/0] via 10.10.13.1, Ethernet8 # loopback Spine-1
- B E      10.10.10.2/32 [200/0] via 10.10.23.1, Ethernet7 # loopback Spine-2
- B E      10.10.10.11/32 [200/0] via 10.10.23.1, Ethernet7 # loopback Leaf-1
-                                 via 10.10.13.1, Ethernet8 # loopback Leaf-1
- B E      10.10.10.12/32 [200/0] via 10.10.23.1, Ethernet7 # loopback Leaf-2
-                                 via 10.10.13.1, Ethernet8 # loopback Leaf-2
+ B E      10.10.10.1/32 [200/0] via 10.10.13.1, Ethernet8 # Spine-1
+ B E      10.10.10.2/32 [200/0] via 10.10.23.1, Ethernet7 # Spine-2
+ B E      10.10.10.11/32 [200/0] via 10.10.23.1, Ethernet7 # Leaf-1
+                                 via 10.10.13.1, Ethernet8 # Leaf-1
+ B E      10.10.10.12/32 [200/0] via 10.10.23.1, Ethernet7 # Leaf-2
+                                 via 10.10.13.1, Ethernet8 # Leaf-2
 
-L3#sh bfd peer
-VRF name: default
------------------
-DstAddr        MyDisc    YourDisc  Interface/Transport    Type          LastUp 
----------- ----------- ----------- -------------------- ------- ---------------
-10.10.13.1  775584952   870682782        Ethernet8(20)  normal  04/30/26 10:29 
-10.10.23.1 3235683260  1962359758        Ethernet7(19)  normal  04/30/26 10:31 
+L3#sh bgp evpn
 
-   LastDown            LastDiag    State
--------------- ------------------- -----
-         NA       No Diagnostic       Up
-         NA       No Diagnostic       Up
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >Ec    RD: 655:1 imet 1010 10.10.10.11
+                                 10.10.10.11           -       100     0       65500 65501 i
+ *  ec    RD: 655:1 imet 1010 10.10.10.11
+                                 10.10.10.11           -       100     0       65500 65501 i
+ * >Ec    RD: 655:2 imet 1010 10.10.10.12
+                                 10.10.10.12           -       100     0       65500 65502 i
+ *  ec    RD: 655:2 imet 1010 10.10.10.12
+                                 10.10.10.12           -       100     0       65500 65502 i
+ * >      RD: 655:3 imet 1010 10.10.10.13
+                                 -                     -       -       0       i
+ * >Ec    RD: 655:1 imet 2020 10.10.10.11
+                                 10.10.10.11           -       100     0       65500 65501 i
+ *  ec    RD: 655:1 imet 2020 10.10.10.11
+                                 10.10.10.11           -       100     0       65500 65501 i
+ * >Ec    RD: 655:2 imet 2020 10.10.10.12
+                                 10.10.10.12           -       100     0       65500 65502 i
+ *  ec    RD: 655:2 imet 2020 10.10.10.12
+                                 10.10.10.12           -       100     0       65500 65502 i
+ * >      RD: 655:3 imet 2020 10.10.10.13
+                                 -                     -       -       0       i
 
-L3#ping 10.10.10.12 source lo0
+L3#ping 10.10.10.11 source loopback 0
+PING 10.10.10.11 (10.10.10.11) from 10.10.10.13 : 72(100) bytes of data.
+80 bytes from 10.10.10.11: icmp_seq=1 ttl=63 time=6.68 ms
+80 bytes from 10.10.10.11: icmp_seq=2 ttl=63 time=5.12 ms
+80 bytes from 10.10.10.11: icmp_seq=3 ttl=63 time=4.80 ms
+80 bytes from 10.10.10.11: icmp_seq=4 ttl=63 time=4.73 ms
+80 bytes from 10.10.10.11: icmp_seq=5 ttl=63 time=4.77 ms
+
+L3#ping 10.10.10.12 source loopback 0
 PING 10.10.10.12 (10.10.10.12) from 10.10.10.13 : 72(100) bytes of data.
-80 bytes from 10.10.10.12: icmp_seq=1 ttl=63 time=6.50 ms
-80 bytes from 10.10.10.12: icmp_seq=2 ttl=63 time=4.70 ms
-80 bytes from 10.10.10.12: icmp_seq=3 ttl=63 time=5.19 ms
-80 bytes from 10.10.10.12: icmp_seq=4 ttl=63 time=5.65 ms
-80 bytes from 10.10.10.12: icmp_seq=5 ttl=63 time=5.09 ms
+80 bytes from 10.10.10.12: icmp_seq=1 ttl=63 time=6.54 ms
+80 bytes from 10.10.10.12: icmp_seq=2 ttl=63 time=6.34 ms
+80 bytes from 10.10.10.12: icmp_seq=3 ttl=63 time=5.82 ms
+80 bytes from 10.10.10.12: icmp_seq=4 ttl=63 time=5.47 ms
+80 bytes from 10.10.10.12: icmp_seq=5 ttl=63 time=6.23 ms
 
---- 10.10.10.12 ping statistics ---
-5 packets transmitted, 5 received, 0% packet loss, time 29ms
-rtt min/avg/max/mdev = 4.706/5.429/6.507/0.618 ms, ipg/ewma 7.346/5.959 ms
-
-L3#traceroute 10.10.10.12 source lo0
-traceroute to 10.10.10.12 (10.10.10.12), 30 hops max, 60 byte packets
- 1  10.10.13.1 (10.10.13.1)  7.043 ms  6.793 ms  6.925 ms
- 2  10.10.10.12 (10.10.10.12)  16.425 ms  16.394 ms  22.516 ms
 ```
 </details>
 
-Все необходимые loopback известны. На Leaf-3 известно по 2 маршрута до Loopback L1 и L2 (по числу Spine). Оба Spine ничего не знают о loopback интерфейсах друг друга, но в этом нет необходимости в данной архитектуре, потому что они только транзитные. Ping и traceroute от Leaf-3 выполняются с loopback, так как p2p подсети мы не анонсировали.
+Все необходимые loopback известны и доступны по сети. Сессии evpn также установлены и мы видим маршруты type-3 (IMET). Теперь попробуем с хоста 192.168.10.11 (Leaf-1) сделать ping до 192.168.10.22 (Leaf-2) и 192.168.10.22 (Leaf-3).
+
+<details>
+<summary><b>Показать результаты на 192.168.10.11</b></summary>
+
+```bash
+VPCS> sh ip
+
+NAME        : VPCS[1]
+IP/MASK     : 192.168.10.11/24
+GATEWAY     : 192.168.10.1
+DNS         : 
+MAC         : 00:50:79:66:68:17
+LPORT       : 20000
+RHOST:PORT  : 127.0.0.1:30000
+MTU         : 1500
+
+VPCS> ping 192.168.10.22
+
+192.168.10.22 icmp_seq=1 timeout
+84 bytes from 192.168.10.22 icmp_seq=2 ttl=64 time=11.101 ms
+84 bytes from 192.168.10.22 icmp_seq=3 ttl=64 time=9.726 ms
+84 bytes from 192.168.10.22 icmp_seq=4 ttl=64 time=9.446 ms
+84 bytes from 192.168.10.22 icmp_seq=5 ttl=64 time=11.508 ms
+
+VPCS> ping 192.168.10.33
+
+192.168.10.33 icmp_seq=1 timeout
+84 bytes from 192.168.10.33 icmp_seq=2 ttl=64 time=10.764 ms
+84 bytes from 192.168.10.33 icmp_seq=3 ttl=64 time=9.968 ms
+84 bytes from 192.168.10.33 icmp_seq=4 ttl=64 time=10.896 ms
+84 bytes from 192.168.10.33 icmp_seq=5 ttl=64 time=10.138 ms
+
+```
+</details>
 
 Ping успешен. Задача выполнена!
