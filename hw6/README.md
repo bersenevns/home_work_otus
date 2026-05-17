@@ -783,40 +783,6 @@ L3#sh bgp evpn route-type ip-prefix ipv4
 <summary><b>Показать результаты на 192.168.10.11</b></summary>
 
 ```bash
-VPCS> sh ip
-
-NAME        : VPCS[1]
-IP/MASK     : 192.168.10.11/24
-GATEWAY     : 192.168.10.1
-DNS         : 
-MAC         : 00:50:79:66:68:17
-LPORT       : 20000
-RHOST:PORT  : 127.0.0.1:30000
-MTU         : 1500
-
-VPCS> ping 192.168.10.22
-
-192.168.10.22 icmp_seq=1 timeout
-84 bytes from 192.168.10.22 icmp_seq=2 ttl=64 time=11.101 ms
-84 bytes from 192.168.10.22 icmp_seq=3 ttl=64 time=9.726 ms
-84 bytes from 192.168.10.22 icmp_seq=4 ttl=64 time=9.446 ms
-84 bytes from 192.168.10.22 icmp_seq=5 ttl=64 time=11.508 ms
-
-VPCS> ping 192.168.10.33
-
-192.168.10.33 icmp_seq=1 timeout
-84 bytes from 192.168.10.33 icmp_seq=2 ttl=64 time=10.764 ms
-84 bytes from 192.168.10.33 icmp_seq=3 ttl=64 time=9.968 ms
-84 bytes from 192.168.10.33 icmp_seq=4 ttl=64 time=10.896 ms
-84 bytes from 192.168.10.33 icmp_seq=5 ttl=64 time=10.138 ms
-
-```
-</details>
-
-<details>
-<summary><b>Показать результаты на 192.168.20.11</b></summary>
-
-```bash
 VPCS> sh ip            
 
 NAME        : VPCS[1]
