@@ -12,7 +12,7 @@
 
 К каждой паре Leaf подключен 1 хост с помощью Port-Channel, один будет в vlan 10, второй в vlan 20.
 
-В качестве L3VNI будет использоваться VNI 100100, будет настроен vrf CLIENTS. Также будут настроен anycast gateway, который будет использоваться в качестве шлюза по умолчанию для хостов.
+В качестве L3VNI будет использоваться VNI 100100, будет настроен vrf VRF. Также будут настроен anycast gateway, который будет использоваться в качестве шлюза по умолчанию для хостов.
 
 ![схема](multihoming.png)
 
@@ -754,64 +754,76 @@ end
 
 ## Результаты
 
-Опробуем запустить пинг между хостами, проверим таблицу соседства BGP, таблицу полученных от соседей префиксов ipv4, таблицу маршрутизации BGP, таблицу evpn route-type 1,2,3,5. DJpmvtv lkz ghbvth
+Опробуем запустить пинг между хостами, проверим таблицу соседства BGP, таблицу полученных от соседей префиксов ipv4, таблицу маршрутизации BGP, таблицу evpn route-type 1,2,3,5. Возьмем за основу LEAF-1 и LEAF-3.
+
+<details>
+<summary><b>Показать результаты на HOST-1</b></summary>
+
+```bash
+HOST-1#ping 192.168.20.5
+PING 192.168.20.5 (192.168.20.5) 72(100) bytes of data.
+80 bytes from 192.168.20.5: icmp_seq=1 ttl=63 time=187 ms
+80 bytes from 192.168.20.5: icmp_seq=2 ttl=63 time=179 ms
+80 bytes from 192.168.20.5: icmp_seq=3 ttl=63 time=175 ms
+80 bytes from 192.168.20.5: icmp_seq=4 ttl=63 time=168 ms
+80 bytes from 192.168.20.5: icmp_seq=5 ttl=63 time=163 ms
+
+--- 192.168.20.5 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 47ms
+rtt min/avg/max/mdev = 163.634/174.988/187.556/8.362 ms, pipe 5, ipg/ewma 11.837/180.678 ms
+```
+</details>
 
 <details>
 <summary><b>Показать результаты на L1</b></summary>
 
 ```bash
-L1#sh bgp summary 
+L1#sh bgp ipv4 unicast summary 
 BGP summary information for VRF default
 Router identifier 10.10.10.11, local AS number 65501
-Neighbor            AS Session State AFI/SAFI                AFI/SAFI State   NLRI Rcd   NLRI Acc
----------- ----------- ------------- ----------------------- -------------- ---------- ----------
-10.10.11.1       65500 Established   IPv4 Unicast            Negotiated              3          3
-10.10.11.1       65500 Established   L2VPN EVPN              Negotiated              8          8
-10.10.21.1       65500 Established   IPv4 Unicast            Negotiated              2          2
-10.10.21.1       65500 Established   L2VPN EVPN              Negotiated              8          8     
-   
+Neighbor Status Codes: m - Under maintenance
+  Description              Neighbor   V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  PEER_MLAG                10.1.1.2   4 65501           3583      3590    0    0 00:54:48 Estab   6      6
+                           10.10.10.1 4 65500           3297      3268    0    0 00:54:48 Estab   3      3
+                           10.10.10.2 4 65500            604       606    0    0 00:24:41 Estab   3      3
+                           10.10.11.1 4 65500           3708      3704    0    0 00:54:48 Estab   3      3
+                           10.10.21.1 4 65500            590       590    0    0 00:24:42 Estab   3      3
 L1#sh bgp ipv4 unicast 
 
           Network                Next Hop              Metric  AIGP       LocPref Weight  Path
  * >      10.10.10.1/32          10.10.11.1            0       -          100     0       65500 i
- * >Ec    10.10.10.12/32         10.10.21.1            0       -          100     0       65500 65502 i
- *  ec    10.10.10.12/32         10.10.11.1            0       -          100     0       65500 65502 i
- * >Ec    10.10.10.13/32         10.10.21.1            0       -          100     0       65500 65503 i
- *  ec    10.10.10.13/32         10.10.11.1            0       -          100     0       65500 65503 i
-
+ *        10.10.10.1/32          10.10.10.1            0       -          100     0       65500 i
+ *        10.10.10.1/32          10.1.1.2              0       -          100     0       65500 i
+ * >      10.10.10.2/32          10.10.21.1            0       -          100     0       65500 i
+ *        10.10.10.2/32          10.10.10.2            0       -          100     0       65500 i
+ *        10.10.10.2/32          10.1.1.2              0       -          100     0       65500 i
+ * >      10.10.10.11/32         -                     -       -          -       0       i
+ * >      10.10.10.12/32         10.1.1.2              0       -          100     0       i
+ * >Ec    10.10.10.13/32         10.10.11.1            0       -          100     0       65500 65503 i
+ *  ec    10.10.10.13/32         10.10.21.1            0       -          100     0       65500 65503 i
+ *        10.10.10.13/32         10.1.1.2              0       -          100     0       65500 65503 i
+          10.10.10.13/32         10.10.13.2            0       -          100     0       65500 65503 i
+          10.10.10.13/32         10.10.23.2            0       -          100     0       65500 65503 i
+ * >Ec    10.10.10.14/32         10.10.11.1            0       -          100     0       65500 65504 i
+ *  ec    10.10.10.14/32         10.10.21.1            0       -          100     0       65500 65504 i
+ *        10.10.10.14/32         10.1.1.2              0       -          100     0       65500 65504 i
+          10.10.10.14/32         10.10.14.2            0       -          100     0       65500 65504 i
+          10.10.10.14/32         10.10.24.2            0       -          100     0       65500 65504 i
+ * >      10.10.10.101/32        -                     -       -          -       0       i
+ * >      10.10.10.102/32        10.1.1.2              0       -          100     0       i
 L1#sh ip route bgp
 
  B E      10.10.10.1/32 [200/0] via 10.10.11.1, Ethernet8
- B E      10.10.10.12/32 [200/0] via 10.10.21.1, Ethernet7 # Leaf-2
-                                 via 10.10.11.1, Ethernet8 # Leaf-2
- B E      10.10.10.13/32 [200/0] via 10.10.21.1, Ethernet7 # Leaf-3
-                                 via 10.10.11.1, Ethernet8 # Leaf-3
-
-L1#sh vxlan vtep
-Remote VTEPS for Vxlan1:
-
-VTEP              Tunnel Type(s)
------------------ --------------
-10.10.10.12       unicast, flood
-10.10.10.13       unicast, flood
-
-Total number of remote VTEPS:  2
-
+ B E      10.10.10.2/32 [200/0] via 10.10.21.1, Ethernet7
+ B I      10.10.10.12/32 [200/0] via 10.1.1.2, Vlan4094
+ B E      10.10.10.13/32 [200/0] via 10.10.21.1, Ethernet7
+                                 via 10.10.11.1, Ethernet8
+ B E      10.10.10.14/32 [200/0] via 10.10.21.1, Ethernet7
+                                 via 10.10.11.1, Ethernet8
+ B I      10.10.10.102/32 [200/0] via 10.1.1.2, Vlan4094
 L1#sh bgp evpn route-type imet 
 
           Network                Next Hop              Metric  LocPref Weight  Path
- * >      RD: 10.10.10.11:10 imet 10.10.10.11
-                                 -                     -       -       0       i
- * >      RD: 10.10.10.11:20 imet 10.10.10.11
-                                 -                     -       -       0       i
- * >Ec    RD: 10.10.10.12:10 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:10 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:20 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:20 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
  * >Ec    RD: 10.10.10.13:10 imet 10.10.10.13
                                  10.10.10.13           -       100     0       65500 65503 i
  *  ec    RD: 10.10.10.13:10 imet 10.10.10.13
@@ -820,122 +832,110 @@ L1#sh bgp evpn route-type imet
                                  10.10.10.13           -       100     0       65500 65503 i
  *  ec    RD: 10.10.10.13:20 imet 10.10.10.13
                                  10.10.10.13           -       100     0       65500 65503 i
+ * >Ec    RD: 10.10.10.14:10 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:10 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >Ec    RD: 10.10.10.14:20 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >      RD: 10.10.10.11:10 imet 10.10.10.101
+                                 10.10.10.101          -       -       0       i
+ * >      RD: 10.10.10.11:20 imet 10.10.10.101
+                                 10.10.10.101          -       -       0       i
+L1#sh bgp evpn route-type mac-ip
 
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >      RD: 10.10.10.11:10 mac-ip 507c.3b3e.64c6
+                                 10.10.10.101          -       -       0       i
+ * >      RD: 10.10.10.11:10 mac-ip 507c.3b3e.64c6 192.168.10.5
+                                 10.10.10.101          -       -       0       i
+ * >Ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >Ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6 192.168.20.5
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6 192.168.20.5
+                                 10.10.10.14           -       100     0       65500 65504 i
+L1#sh bgp evpn route-type auto-discovery 
+
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >Ec    RD: 10.10.10.13:20 auto-discovery 0 0000:0000:0000:0000:0001
+                                 10.10.10.13           -       100     0       65500 65503 i
+ *  ec    RD: 10.10.10.13:20 auto-discovery 0 0000:0000:0000:0000:0001
+                                 10.10.10.13           -       100     0       65500 65503 i
+ * >Ec    RD: 10.10.10.14:20 auto-discovery 0 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 auto-discovery 0 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >Ec    RD: 10.10.10.13:1 auto-discovery 0000:0000:0000:0000:0001
+                                 10.10.10.13           -       100     0       65500 65503 i
+ *  ec    RD: 10.10.10.13:1 auto-discovery 0000:0000:0000:0000:0001
+                                 10.10.10.13           -       100     0       65500 65503 i
+ * >Ec    RD: 10.10.10.14:1 auto-discovery 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:1 auto-discovery 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+L1#sh bgp evpn route-type ethernet-segment 
+
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >Ec    RD: 10.10.10.13:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.13
+                                 10.10.10.13           -       100     0       65500 65503 i
+ *  ec    RD: 10.10.10.13:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.13
+                                 10.10.10.13           -       100     0       65500 65503 i
+ * >Ec    RD: 10.10.10.14:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
 L1#sh bgp evpn route-type ip-prefix ipv4
 
           Network                Next Hop              Metric  LocPref Weight  Path
- * >      RD: 65501:10100 ip-prefix 192.168.10.0/24
+ * >      RD: 10.10.10.11:100 ip-prefix 192.168.10.0/24
                                  -                     -       -       0       i
- * >Ec    RD: 65502:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 65502:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 65503:10100 ip-prefix 192.168.10.0/24
+ * >Ec    RD: 10.10.10.13:100 ip-prefix 192.168.10.0/24
                                  10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 65503:10100 ip-prefix 192.168.10.0/24
+ *  ec    RD: 10.10.10.13:100 ip-prefix 192.168.10.0/24
                                  10.10.10.13           -       100     0       65500 65503 i
- * >      RD: 65501:10100 ip-prefix 192.168.20.0/24
+ * >Ec    RD: 10.10.10.14:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >      RD: 10.10.10.11:100 ip-prefix 192.168.20.0/24
                                  -                     -       -       0       i
- * >Ec    RD: 65502:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 65502:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 65503:10100 ip-prefix 192.168.20.0/24
+ * >Ec    RD: 10.10.10.13:100 ip-prefix 192.168.20.0/24
                                  10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 65503:10100 ip-prefix 192.168.20.0/24
+ *  ec    RD: 10.10.10.13:100 ip-prefix 192.168.20.0/24
                                  10.10.10.13           -       100     0       65500 65503 i
-```
-</details>
+ * >Ec    RD: 10.10.10.14:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+L1#sh mlag
+MLAG Configuration:              
+domain-id                          :                MLAG
+local-interface                    :            Vlan4094
+peer-address                       :            10.1.1.2
+peer-link                          :     Port-Channel100
+peer-config                        :          consistent
+                                                       
+MLAG Status:                     
+state                              :              Active
+negotiation status                 :           Connected
+peer-link status                   :                  Up
+local-int status                   :                  Up
+system-id                          :   52:4e:75:48:d8:6d
+dual-primary detection             :            Disabled
+dual-primary interface errdisabled :               False
+                                                       
+MLAG Ports:                      
+Disabled                           :                   0
+Configured                         :                   0
+Inactive                           :                   0
+Active-partial                     :                   0
+Active-full                        :                   1
 
-<details>
-<summary><b>Показать результаты на L2</b></summary>
-
-```bash
-L2#sh bgp summary 
-BGP summary information for VRF default
-Router identifier 10.10.10.12, local AS number 65502
-Neighbor            AS Session State AFI/SAFI                AFI/SAFI State   NLRI Rcd   NLRI Acc
----------- ----------- ------------- ----------------------- -------------- ---------- ----------
-10.10.12.1       65500 Established   IPv4 Unicast            Negotiated              2          2
-10.10.12.1       65500 Established   L2VPN EVPN              Negotiated              4          4
-10.10.22.1       65500 Established   IPv4 Unicast            Negotiated              1          1
-10.10.22.1       65500 Established   L2VPN EVPN              Negotiated              4          4
-
-L2#sh bgp ipv4 unicast
-
-          Network                Next Hop              Metric  AIGP       LocPref Weight  Path
- * >      10.10.10.1/32          10.10.12.1            0       -          100     0       65500 i
- * >Ec    10.10.10.11/32         10.10.12.1            0       -          100     0       65500 65501 i
- *  ec    10.10.10.11/32         10.10.22.1            0       -          100     0       65500 65501 i
- * >      10.10.10.12/32         -                     -       -          -       0       i
- * >Ec    10.10.10.13/32         10.10.12.1            0       -          100     0       65500 65503 i
- *  ec    10.10.10.13/32         10.10.22.1            0       -          100     0       65500 65503 i
-
-L2#sh ip route bgp
-
- B E      10.10.10.1/32 [200/0] via 10.10.12.1, Ethernet8
- B E      10.10.10.11/32 [200/0] via 10.10.22.1, Ethernet7 # Leaf-1
-                                 via 10.10.12.1, Ethernet8 # Leaf-1
- B E      10.10.10.13/32 [200/0] via 10.10.22.1, Ethernet7 # Leaf-3
-                                 via 10.10.12.1, Ethernet8 # Leaf-3
-
-L2#sh vxlan vtep
-Remote VTEPS for Vxlan1:
-
-VTEP              Tunnel Type(s)
------------------ --------------
-10.10.10.11       flood, unicast
-10.10.10.13       flood, unicast
-
-Total number of remote VTEPS:  2
-
-L2#sh bgp evpn route-type imet 
-
-          Network                Next Hop              Metric  LocPref Weight  Path
- * >Ec    RD: 10.10.10.11:10 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 10.10.10.11:10 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >Ec    RD: 10.10.10.11:20 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 10.10.10.11:20 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >      RD: 10.10.10.12:10 imet 10.10.10.12
-                                 -                     -       -       0       i
- * >      RD: 10.10.10.12:20 imet 10.10.10.12
-                                 -                     -       -       0       i
- * >Ec    RD: 10.10.10.13:10 imet 10.10.10.13
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:10 imet 10.10.10.13
-                                 10.10.10.13           -       100     0       65500 65503 i
- * >Ec    RD: 10.10.10.13:20 imet 10.10.10.13
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:20 imet 10.10.10.13
-                                 10.10.10.13           -       100     0       65500 65503 i
-
-L2#sh bgp evpn route-type ip-prefix ipv4
-
-          Network                Next Hop              Metric  LocPref Weight  Path
- * >Ec    RD: 65501:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 65501:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >      RD: 65502:10100 ip-prefix 192.168.10.0/24
-                                 -                     -       -       0       i
- * >Ec    RD: 65503:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 65503:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.13           -       100     0       65500 65503 i
- * >Ec    RD: 65501:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 65501:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >      RD: 65502:10100 ip-prefix 192.168.20.0/24
-                                 -                     -       -       0       i
- * >Ec    RD: 65503:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 65503:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.13           -       100     0       65500 65503 i
 ```
 </details>
 
@@ -943,91 +943,168 @@ L2#sh bgp evpn route-type ip-prefix ipv4
 <summary><b>Показать результаты на L3</b></summary>
 
 ```bash
-L3#sh bgp summary 
+L3#sh bgp ipv4 unicast summary 
 BGP summary information for VRF default
 Router identifier 10.10.10.13, local AS number 65503
-Neighbor            AS Session State AFI/SAFI                AFI/SAFI State   NLRI Rcd   NLRI Acc
----------- ----------- ------------- ----------------------- -------------- ---------- ----------
-10.10.13.1       65500 Established   IPv4 Unicast            Negotiated              3          3
-10.10.13.1       65500 Established   L2VPN EVPN              Negotiated              8          8
-10.10.23.1       65500 Established   IPv4 Unicast            Negotiated              2          2
-10.10.23.1       65500 Established   L2VPN EVPN              Negotiated              8          8
-
-L3#sh bgp ipv4 unicast 
-
+Neighbor Status Codes: m - Under maintenance
+  Neighbor   V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  10.10.10.1 4 65500           2377      2292    0    0 00:55:13 Estab   6      6
+  10.10.10.2 4 65500            398       400    0    0 00:16:01 Estab   6      6
+  10.10.13.1 4 65500           2399      2380    0    0 00:55:14 Estab   6      6
+  10.10.23.1 4 65500            385       385    0    0 00:16:08 Estab   6      6
+L3#sh bgp ipv4 unicast
           Network                Next Hop              Metric  AIGP       LocPref Weight  Path
  * >      10.10.10.1/32          10.10.13.1            0       -          100     0       65500 i
- * >Ec    10.10.10.11/32         10.10.23.1            0       -          100     0       65500 65501 i
- *  ec    10.10.10.11/32         10.10.13.1            0       -          100     0       65500 65501 i
- * >Ec    10.10.10.12/32         10.10.13.1            0       -          100     0       65500 65502 i
- *  ec    10.10.10.12/32         10.10.23.1            0       -          100     0       65500 65502 i
+ *        10.10.10.1/32          10.10.10.1            0       -          100     0       65500 i
+ * >      10.10.10.2/32          10.10.23.1            0       -          100     0       65500 i
+ *        10.10.10.2/32          10.10.10.2            0       -          100     0       65500 i
+ * >Ec    10.10.10.11/32         10.10.13.1            0       -          100     0       65500 65501 i
+ *  ec    10.10.10.11/32         10.10.23.1            0       -          100     0       65500 65501 i
+          10.10.10.11/32         10.10.12.2            0       -          100     0       65500 65501 i
+          10.10.10.11/32         10.10.21.2            0       -          100     0       65500 65501 i
+ * >Ec    10.10.10.12/32         10.10.13.1            0       -          100     0       65500 65501 i
+ *  ec    10.10.10.12/32         10.10.23.1            0       -          100     0       65500 65501 i
+          10.10.10.12/32         10.10.12.2            0       -          100     0       65500 65501 i
+          10.10.10.12/32         10.10.21.2            0       -          100     0       65500 65501 i
  * >      10.10.10.13/32         -                     -       -          -       0       i
-
+ * >Ec    10.10.10.14/32         10.10.13.1            0       -          100     0       65500 65504 i
+ *  ec    10.10.10.14/32         10.10.23.1            0       -          100     0       65500 65504 i
+          10.10.10.14/32         10.10.14.2            0       -          100     0       65500 65504 i
+          10.10.10.14/32         10.10.24.2            0       -          100     0       65500 65504 i
+ * >Ec    10.10.10.101/32        10.10.13.1            0       -          100     0       65500 65501 i
+ *  ec    10.10.10.101/32        10.10.23.1            0       -          100     0       65500 65501 i
+          10.10.10.101/32        10.10.12.2            0       -          100     0       65500 65501 i
+          10.10.10.101/32        10.10.21.2            0       -          100     0       65500 65501 i
+ * >Ec    10.10.10.102/32        10.10.13.1            0       -          100     0       65500 65501 i
+ *  ec    10.10.10.102/32        10.10.23.1            0       -          100     0       65500 65501 i
+          10.10.10.102/32        10.10.12.2            0       -          100     0       65500 65501 i
+          10.10.10.102/32        10.10.21.2            0       -          100     0       65500 65501 i
 L3#sh ip route bgp
 
- B E      10.10.10.1/32 [200/0] via 10.10.13.1, Ethernet8 
- B E      10.10.10.11/32 [200/0] via 10.10.23.1, Ethernet7 # Leaf-1
-                                 via 10.10.13.1, Ethernet8 # Leaf-1
- B E      10.10.10.12/32 [200/0] via 10.10.23.1, Ethernet7 # Leaf-2
-                                 via 10.10.13.1, Ethernet8 # Leaf-2
-
-L3#sh vxlan vtep 
-Remote VTEPS for Vxlan1:
-
-VTEP              Tunnel Type(s)
------------------ --------------
-10.10.10.11       flood, unicast
-10.10.10.12       flood, unicast
-
-Total number of remote VTEPS:  2
-
-L3#sh bgp evpn route-type imet 
-
+ B E      10.10.10.1/32 [200/0] via 10.10.13.1, Ethernet8
+ B E      10.10.10.2/32 [200/0] via 10.10.23.1, Ethernet7
+ B E      10.10.10.11/32 [200/0] via 10.10.23.1, Ethernet7
+                                 via 10.10.13.1, Ethernet8
+ B E      10.10.10.12/32 [200/0] via 10.10.23.1, Ethernet7
+                                 via 10.10.13.1, Ethernet8
+ B E      10.10.10.14/32 [200/0] via 10.10.23.1, Ethernet7
+                                 via 10.10.13.1, Ethernet8
+ B E      10.10.10.101/32 [200/0] via 10.10.23.1, Ethernet7
+                                  via 10.10.13.1, Ethernet8
+ B E      10.10.10.102/32 [200/0] via 10.10.23.1, Ethernet7
+                                  via 10.10.13.1, Ethernet8
+L3#sh bgp evpn route-type imet
           Network                Next Hop              Metric  LocPref Weight  Path
- * >Ec    RD: 10.10.10.11:10 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 10.10.10.11:10 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >Ec    RD: 10.10.10.11:20 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 10.10.10.11:20 imet 10.10.10.11
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >Ec    RD: 10.10.10.12:10 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:10 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:20 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:20 imet 10.10.10.12
-                                 10.10.10.12           -       100     0       65500 65502 i
  * >      RD: 10.10.10.13:10 imet 10.10.10.13
                                  -                     -       -       0       i
  * >      RD: 10.10.10.13:20 imet 10.10.10.13
                                  -                     -       -       0       i
-
-L3#sh bgp evpn route-type ip-prefix ipv4
+ * >Ec    RD: 10.10.10.14:10 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:10 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >Ec    RD: 10.10.10.14:20 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 imet 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >Ec    RD: 10.10.10.11:10 imet 10.10.10.101
+                                 10.10.10.101          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.11:10 imet 10.10.10.101
+                                 10.10.10.101          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.11:20 imet 10.10.10.101
+                                 10.10.10.101          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.11:20 imet 10.10.10.101
+                                 10.10.10.101          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.12:10 imet 10.10.10.102
+                                 10.10.10.102          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.12:10 imet 10.10.10.102
+                                 10.10.10.102          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.12:20 imet 10.10.10.102
+                                 10.10.10.102          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.12:20 imet 10.10.10.102
+                                 10.10.10.102          -       100     0       65500 65501 i
+L3#sh bgp evpn route-type mac-ip 
 
           Network                Next Hop              Metric  LocPref Weight  Path
- * >Ec    RD: 65501:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 65501:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >Ec    RD: 65502:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 65502:10100 ip-prefix 192.168.10.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >      RD: 65503:10100 ip-prefix 192.168.10.0/24
+ * >Ec    RD: 10.10.10.11:10 mac-ip 507c.3b3e.64c6
+                                 10.10.10.101          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.11:10 mac-ip 507c.3b3e.64c6
+                                 10.10.10.101          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.12:10 mac-ip 507c.3b3e.64c6
+                                 10.10.10.102          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.12:10 mac-ip 507c.3b3e.64c6
+                                 10.10.10.102          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.11:10 mac-ip 507c.3b3e.64c6 192.168.10.5
+                                 10.10.10.101          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.11:10 mac-ip 507c.3b3e.64c6 192.168.10.5
+                                 10.10.10.101          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.12:10 mac-ip 507c.3b3e.64c6 192.168.10.5
+                                 10.10.10.102          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.12:10 mac-ip 507c.3b3e.64c6 192.168.10.5
+                                 10.10.10.102          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >Ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6 192.168.20.5
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 mac-ip 50f3.934d.4af6 192.168.20.5
+                                 10.10.10.14           -       100     0       65500 65504 i
+L3#sh bgp evpn route-type auto-discovery 
+
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >      RD: 10.10.10.13:20 auto-discovery 0 0000:0000:0000:0000:0001
                                  -                     -       -       0       i
- * >Ec    RD: 65501:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- *  ec    RD: 65501:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.11           -       100     0       65500 65501 i
- * >Ec    RD: 65502:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 65502:10100 ip-prefix 192.168.20.0/24
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >      RD: 65503:10100 ip-prefix 192.168.20.0/24
+ * >Ec    RD: 10.10.10.14:20 auto-discovery 0 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:20 auto-discovery 0 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+ * >      RD: 10.10.10.13:1 auto-discovery 0000:0000:0000:0000:0001
                                  -                     -       -       0       i
+ * >Ec    RD: 10.10.10.14:1 auto-discovery 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:1 auto-discovery 0000:0000:0000:0000:0001
+                                 10.10.10.14           -       100     0       65500 65504 i
+L3#sh bgp evpn route-type ethernet-segment 
+
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >      RD: 10.10.10.13:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.13
+                                 -                     -       -       0       i
+ * >Ec    RD: 10.10.10.14:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:1 ethernet-segment 0000:0000:0000:0000:0001 10.10.10.14
+                                 10.10.10.14           -       100     0       65500 65504 i
+L3#sh bgp evpn route-type ip-prefix ipv4
+          Network                Next Hop              Metric  LocPref Weight  Path
+          RD: 10.10.10.11:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.101          -       100     0       65500 65501 i
+          RD: 10.10.10.11:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.101          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.12:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.102          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.12:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.102          -       100     0       65500 65501 i
+ * >      RD: 10.10.10.13:100 ip-prefix 192.168.10.0/24
+                                 -                     -       -       0       i
+ * >Ec    RD: 10.10.10.14:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+          RD: 10.10.10.11:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.101          -       100     0       65500 65501 i
+          RD: 10.10.10.11:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.101          -       100     0       65500 65501 i
+ * >Ec    RD: 10.10.10.12:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.102          -       100     0       65500 65501 i
+ *  ec    RD: 10.10.10.12:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.102          -       100     0       65500 65501 i
+ * >      RD: 10.10.10.13:100 ip-prefix 192.168.20.0/24
+                                 -                     -       -       0       i
+ * >Ec    RD: 10.10.10.14:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+ *  ec    RD: 10.10.10.14:100 ip-prefix 192.168.20.0/24
+                                 10.10.10.14           -       100     0       65500 65504 i
+
 ```
 </details>
 
@@ -1035,142 +1112,6 @@ L3#sh bgp evpn route-type ip-prefix ipv4
 
 Теперь попробуем с хоста 192.168.10.11 (Leaf-1) сделать ping до всех остальных хостов, подключенных ко всем Leaf.
 
-<details>
-<summary><b>Показать результаты на 192.168.10.11</b></summary>
-
-```bash
-VPCS> sh ip            
-
-NAME        : VPCS[1]
-IP/MASK     : 192.168.10.11/24
-GATEWAY     : 192.168.10.1
-DNS         : 
-MAC         : 00:50:79:66:68:22
-LPORT       : 20000
-RHOST:PORT  : 127.0.0.1:30000
-MTU         : 1500
-
-VPCS> ping 192.168.10.1 # Anycast Gateway
-
-84 bytes from 192.168.10.1 icmp_seq=1 ttl=64 time=2.424 ms
-84 bytes from 192.168.10.1 icmp_seq=2 ttl=64 time=3.246 ms
-84 bytes from 192.168.10.1 icmp_seq=3 ttl=64 time=3.213 ms
-84 bytes from 192.168.10.1 icmp_seq=4 ttl=64 time=2.535 ms
-84 bytes from 192.168.10.1 icmp_seq=5 ttl=64 time=2.370 ms
-
-VPCS> ping 192.168.10.22 # host Leaf-2
-
-84 bytes from 192.168.10.22 icmp_seq=1 ttl=64 time=13.278 ms
-84 bytes from 192.168.10.22 icmp_seq=2 ttl=64 time=12.075 ms
-84 bytes from 192.168.10.22 icmp_seq=3 ttl=64 time=12.030 ms
-84 bytes from 192.168.10.22 icmp_seq=4 ttl=64 time=12.022 ms
-84 bytes from 192.168.10.22 icmp_seq=5 ttl=64 time=13.777 ms
-
-VPCS> ping 192.168.10.33 # host Leaf-3
-
-84 bytes from 192.168.10.33 icmp_seq=1 ttl=64 time=15.765 ms
-84 bytes from 192.168.10.33 icmp_seq=2 ttl=64 time=12.267 ms
-84 bytes from 192.168.10.33 icmp_seq=3 ttl=64 time=12.189 ms
-84 bytes from 192.168.10.33 icmp_seq=4 ttl=64 time=10.988 ms
-84 bytes from 192.168.10.33 icmp_seq=5 ttl=64 time=11.494 ms
-
-VPCS> ping 192.168.20.11 # host Leaf-1
-
-84 bytes from 192.168.20.11 icmp_seq=1 ttl=63 time=5.277 ms
-84 bytes from 192.168.20.11 icmp_seq=2 ttl=63 time=4.994 ms
-84 bytes from 192.168.20.11 icmp_seq=3 ttl=63 time=4.404 ms
-84 bytes from 192.168.20.11 icmp_seq=4 ttl=63 time=4.830 ms
-84 bytes from 192.168.20.11 icmp_seq=5 ttl=63 time=5.885 ms
-
-VPCS> ping 192.168.20.22 # host Leaf-2
-
-84 bytes from 192.168.20.22 icmp_seq=1 ttl=62 time=23.321 ms
-84 bytes from 192.168.20.22 icmp_seq=2 ttl=62 time=12.292 ms
-84 bytes from 192.168.20.22 icmp_seq=3 ttl=62 time=12.815 ms
-84 bytes from 192.168.20.22 icmp_seq=4 ttl=62 time=12.744 ms
-84 bytes from 192.168.20.22 icmp_seq=5 ttl=62 time=14.975 ms
-
-VPCS> ping 192.168.20.33 # host Leaf-3
-
-84 bytes from 192.168.20.33 icmp_seq=1 ttl=62 time=18.840 ms
-84 bytes from 192.168.20.33 icmp_seq=2 ttl=62 time=15.128 ms
-84 bytes from 192.168.20.33 icmp_seq=3 ttl=62 time=12.172 ms
-84 bytes from 192.168.20.33 icmp_seq=4 ttl=62 time=12.146 ms
-84 bytes from 192.168.20.33 icmp_seq=5 ttl=62 time=11.575 ms
-
-```
-</details>
-
-<details>
-<summary><b>Посмотрим, что изменилось на Leaf-1</b></summary>
-
-```bash
-L1#sh bgp evpn route-type mac-ip
-
-          Network                Next Hop              Metric  LocPref Weight  Path
- * >      RD: 10.10.10.11:20 mac-ip 0050.7966.681d
-                                 -                     -       -       0       i
- * >      RD: 10.10.10.11:20 mac-ip 0050.7966.681d 192.168.20.11
-                                 -                     -       -       0       i
- * >Ec    RD: 10.10.10.12:10 mac-ip 0050.7966.681e
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:10 mac-ip 0050.7966.681e
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:10 mac-ip 0050.7966.681e 192.168.10.22
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:10 mac-ip 0050.7966.681e 192.168.10.22
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:20 mac-ip 0050.7966.681f
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:20 mac-ip 0050.7966.681f
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:20 mac-ip 0050.7966.681f 192.168.20.22
-                                 10.10.10.12           -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:20 mac-ip 0050.7966.681f 192.168.20.22
-                                 10.10.10.12           -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.13:10 mac-ip 0050.7966.6820
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:10 mac-ip 0050.7966.6820
-                                 10.10.10.13           -       100     0       65500 65503 i
- * >Ec    RD: 10.10.10.13:10 mac-ip 0050.7966.6820 192.168.10.33
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:10 mac-ip 0050.7966.6820 192.168.10.33
-                                 10.10.10.13           -       100     0       65500 65503 i
- * >Ec    RD: 10.10.10.13:20 mac-ip 0050.7966.6821
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:20 mac-ip 0050.7966.6821
-                                 10.10.10.13           -       100     0       65500 65503 i
- * >Ec    RD: 10.10.10.13:20 mac-ip 0050.7966.6821 192.168.20.33
-                                 10.10.10.13           -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:20 mac-ip 0050.7966.6821 192.168.20.33
-                                 10.10.10.13           -       100     0       65500 65503 i
- * >      RD: 10.10.10.11:10 mac-ip 0050.7966.6822
-                                 -                     -       -       0       i
- * >      RD: 10.10.10.11:10 mac-ip 0050.7966.6822 192.168.10.11
-                                 -                     -       -       0       i
-
-L1#sh mac address-table 
-          Mac Address Table
-------------------------------------------------------------------
-
-Vlan    Mac Address       Type        Ports      Moves   Last Move
-----    -----------       ----        -----      -----   ---------
-   1    0000.0000.0001    STATIC      Cpu
-  10    0000.0000.0001    STATIC      Cpu
-  10    0050.7966.681e    DYNAMIC     Vx1        1       0:05:52 ago
-  10    0050.7966.6820    DYNAMIC     Vx1        1       0:05:24 ago
-  10    0050.7966.6822    DYNAMIC     Et1        1       0:08:22 ago
-  20    0000.0000.0001    STATIC      Cpu
-  20    0050.7966.681d    DYNAMIC     Et2        1       0:06:10 ago
-  20    0050.7966.681f    DYNAMIC     Vx1        1       0:05:39 ago
-  20    0050.7966.6821    DYNAMIC     Vx1        1       0:05:09 ago
-4094    0000.0000.0001    STATIC      Cpu
-4094    50e6.3de9.14d9    DYNAMIC     Vx1        1       0:27:44 ago
-4094    50fa.63ee.8e7e    DYNAMIC     Vx1        1       0:27:44 ago
-Total Mac Addresses for this criterion: 12
-
-```
-</details>
 
 Мы видим, что на Leaf-1 появились маршруты type-2 (mac-ip), изучены по EVPN BGP, внесены в локальную таблицу mac-адресов.
 
