@@ -8,51 +8,28 @@
 
 ## Схема
 
-Протокол динамической маршрутизации BGP будет использоваться и в качестве underlay (eBGP), и в качестве overlay (AF evpn), чтобы избежать избыточной конфигурации. Подробнее о настройке eBGP underlay [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw4/README.md), подробнее о настройке EVPN L2VNI [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw5/README.md)
+Протокол динамической маршрутизации BGP будет использоваться и в качестве underlay (eBGP), и в качестве overlay (AF evpn), чтобы избежать избыточной конфигурации. Подробнее о настройке eBGP underlay [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw4/README.md), подробнее о настройке EVPN L3VNI [здесь](https://github.com/bersenevns/home_work_otus/tree/main/hw6)
 
-К каждому Leaf подключено по 2 хоста:
-- хост в VLAN 10 (eth1) попадет в VNI 1010
-- хост в VLAN 20 (eth2) попадет в VNI 2020
+К каждой паре Leaf подключен 1 хост с помощью Port-Channel, один будет в vlan 10, второй в vlan 20.
 
-В качестве L3VNI будет использоваться VLAN 100 (VNI 10100), будет настроен vrf CLIENTS. Также будут настроен anycast gateway, который будет использоваться в качестве шлюза по умолчанию для хостов.
+В качестве L3VNI будет использоваться VNI 100100, будет настроен vrf CLIENTS. Также будут настроен anycast gateway, который будет использоваться в качестве шлюза по умолчанию для хостов.
 
-![схема](scheme_l3vni.png)
+![схема](multihoming.png)
 
 ---
 
 ## Адресация
 
-Логика адресации и коммутация представлены [здесь](https://github.com/bersenevns/home_work_otus/blob/main/hw1/README.md). Ниже представлена краткая выжимка.
-
-### Spine 1 connections
-
-| Link    | Network       | Spine Port | Spine IP   | Leaf IP    | Leaf Port |
-|---------|---------------|------------|------------|------------|-----------|
-| S1 ↔ L1 | 10.10.11.0/30 | eth1       | 10.10.11.1 | 10.10.11.2 | eth8      |
-| S1 ↔ L2 | 10.10.12.0/30 | eth2       | 10.10.12.1 | 10.10.12.2 | eth8      |
-| S1 ↔ L3 | 10.10.13.0/30 | eth3       | 10.10.13.1 | 10.10.13.2 | eth8      |
-
----
-
-### Spine 2 connections
-
-| Link    | Network       | Spine Port | Spine IP   | Leaf IP    | Leaf Port |
-|---------|---------------|------------|------------|------------|-----------|
-| S2 ↔ L1 | 10.10.21.0/30 | eth1       | 10.10.21.1 | 10.10.21.2 | eth7      |
-| S2 ↔ L2 | 10.10.22.0/30 | eth2       | 10.10.22.1 | 10.10.22.2 | eth7      |
-| S2 ↔ L3 | 10.10.23.0/30 | eth3       | 10.10.23.1 | 10.10.23.2 | eth7      |
-
----
-
 ### Loopback-интерфейсы
 
-| Устройство | Loopback0      |
-|------------|----------------|
-| S1         | 10.10.10.1/32  |
-| S2         | 10.10.10.2/32  |
-| L1         | 10.10.10.11/32 |
-| L2         | 10.10.10.12/32 |
-| L3         | 10.10.10.13/32 |
+| Устройство | Loopback0      | Loopback 1     |
+|------------|----------------|----------------|
+| S1         | 10.10.10.1/32  |                |
+| S2         | 10.10.10.2/32  |                |
+| L1         | 10.10.10.11/32 | 10.10.10.101/32|
+| L2         | 10.10.10.12/32 | 10.10.10.102/32|
+| L3         | 10.10.10.13/32 |                |
+| L4         | 10.10.10.14/32 |                |
 
 ### AS-numbering
 
@@ -61,41 +38,20 @@
 | S1         | 65500 |
 | S2         | 65500 |
 | L1         | 65501 |
-| L2         | 65502 |
+| L2         | 65501 |
 | L3         | 65503 |
-
-### Адресация хостов
-
-| Устройство | интерфейс | VLAN | IP            |
-|------------|-----------|------|---------------|
-| Leaf1      | eth1      | 10   | 192.168.10.11 |
-| Leaf1      | eth2      | 20   | 192.168.20.11 |
-| Leaf2      | eth1      | 10   | 192.168.10.22 |
-| Leaf2      | eth2      | 20   | 192.168.20.22 |
-| Leaf3      | eth1      | 10   | 192.168.10.33 |
-| Leaf3      | eth2      | 20   | 192.168.20.33 |
+| L4         | 65504 |
 
 ---
 
 ## Конфигурация
 
-1) Включен роутинг
-2) На интерфейсах настроен MTU 9214
-3) Настроен router-id
-4) Настроен BFD
-5) Изменены таймеры BGP 3s keep-alive, 9s hold
-6) Настроена аутентификация для BGP
-7) Настроен ECMP
-8) Конфигурация с использованием peer group для удобства
-9) Включена модель multi-agent для возможности использования MP-BGP
-10) Сделан mapping VLAN - VNI
-11) Использование vlan-based
-12) redistribute изученных локально mac-адресов
-13) Включение отправки extended community (без этого не заработает)
-14) Настройка anycast gateway в VLAN 10, VLAN 20
-15) Настройка виртуального mac-адреса
-16) Настройка vrf CLIENTS
-17) Redistribute connected сетей
+1) Настроен MLAG на LEAF-1, LEAF-2
+2) В качестве downlink использовать LACP Port-Channel1
+3) Anycast gateway
+4) vrf VRF
+5) Symmetic IRB
+6) Multihoming на LEAF-3, LEAF-4
 
 Конфигурация устройств представлена ниже, лишние строки удалены в целях читаемости.
 
@@ -107,20 +63,32 @@ service routing protocols model multi-agent
 !
 hostname S1
 !
+spanning-tree mode mstp
+!
 interface Ethernet1
+   description L1
    mtu 9214
    no switchport
    ip address 10.10.11.1/30
 !
 interface Ethernet2
+   description L2
    mtu 9214
    no switchport
    ip address 10.10.12.1/30
 !
 interface Ethernet3
+   description L3
    mtu 9214
    no switchport
    ip address 10.10.13.1/30
+!
+interface Ethernet4
+   description L4
+   mtu 9214
+   no switchport
+   ip address 10.10.14.1/30
+!
 interface Loopback0
    ip address 10.10.10.1/32
 !
@@ -130,26 +98,40 @@ router bgp 65500
    router-id 10.10.10.1
    timers bgp 3 9
    maximum-paths 10 ecmp 10
-   neighbor LEAFS peer group
-   neighbor LEAFS bfd
-   neighbor LEAFS password 7 /3ZkUd1QPGBJ7Vztltm37A==
-   neighbor LEAFS send-community extended
-   neighbor 10.10.11.2 peer group LEAFS
+   neighbor EVPN peer group
+   neighbor EVPN next-hop-unchanged
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop 3
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY bfd
+   neighbor UNDERLAY password 7 q1G/gCPAxox+izPj5OvcXw==
+   neighbor 10.10.10.11 peer group EVPN
+   neighbor 10.10.10.11 remote-as 65501
+   neighbor 10.10.10.12 peer group EVPN
+   neighbor 10.10.10.12 remote-as 65501
+   neighbor 10.10.10.13 peer group EVPN
+   neighbor 10.10.10.13 remote-as 65503
+   neighbor 10.10.10.14 peer group EVPN
+   neighbor 10.10.10.14 remote-as 65504
+   neighbor 10.10.11.2 peer group UNDERLAY
    neighbor 10.10.11.2 remote-as 65501
    neighbor 10.10.11.2 description L1
-   neighbor 10.10.12.2 peer group LEAFS
-   neighbor 10.10.12.2 remote-as 65502
+   neighbor 10.10.12.2 peer group UNDERLAY
+   neighbor 10.10.12.2 remote-as 65501
    neighbor 10.10.12.2 description L2
-   neighbor 10.10.13.2 peer group LEAFS
+   neighbor 10.10.13.2 peer group UNDERLAY
    neighbor 10.10.13.2 remote-as 65503
    neighbor 10.10.13.2 description L3
+   neighbor 10.10.14.2 peer group UNDERLAY
+   neighbor 10.10.14.2 remote-as 65504
+   neighbor 10.10.14.2 description L4
    !
    address-family evpn
-      neighbor LEAFS activate
-      neighbor LEAFS encapsulation vxlan
+      neighbor EVPN activate
    !
    address-family ipv4
-      neighbor LEAFS activate
+      neighbor UNDERLAY activate
       network 10.10.10.1/32
 !
 end
@@ -164,20 +146,31 @@ service routing protocols model multi-agent
 !
 hostname S2
 !
+spanning-tree mode mstp
+!
 interface Ethernet1
+   description L1
    mtu 9214
    no switchport
    ip address 10.10.21.1/30
 !
 interface Ethernet2
+   description L2
    mtu 9214
    no switchport
    ip address 10.10.22.1/30
 !
 interface Ethernet3
+   description L3
    mtu 9214
    no switchport
    ip address 10.10.23.1/30
+!
+interface Ethernet4
+   description L4
+   mtu 9214
+   no switchport
+   ip address 10.10.24.1/30
 !
 interface Loopback0
    ip address 10.10.10.2/32
@@ -188,26 +181,40 @@ router bgp 65500
    router-id 10.10.10.2
    timers bgp 3 9
    maximum-paths 10 ecmp 10
-   neighbor LEAFS peer group
-   neighbor LEAFS bfd
-   neighbor LEAFS password 7 /3ZkUd1QPGBJ7Vztltm37A==
-   neighbor LEAFS send-community extended
-   neighbor 10.10.21.2 peer group LEAFS
+   neighbor EVPN peer group
+   neighbor EVPN next-hop-unchanged
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop 3
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY bfd
+   neighbor UNDERLAY password 7 q1G/gCPAxox+izPj5OvcXw==
+   neighbor 10.10.10.11 peer group EVPN
+   neighbor 10.10.10.11 remote-as 65501
+   neighbor 10.10.10.12 peer group EVPN
+   neighbor 10.10.10.12 remote-as 65501
+   neighbor 10.10.10.13 peer group EVPN
+   neighbor 10.10.10.13 remote-as 65503
+   neighbor 10.10.10.14 peer group EVPN
+   neighbor 10.10.10.14 remote-as 65504
+   neighbor 10.10.21.2 peer group UNDERLAY
    neighbor 10.10.21.2 remote-as 65501
    neighbor 10.10.21.2 description L1
-   neighbor 10.10.22.2 peer group LEAFS
-   neighbor 10.10.22.2 remote-as 65502
+   neighbor 10.10.22.2 peer group UNDERLAY
+   neighbor 10.10.22.2 remote-as 65501
    neighbor 10.10.22.2 description L2
-   neighbor 10.10.23.2 peer group LEAFS
+   neighbor 10.10.23.2 peer group UNDERLAY
    neighbor 10.10.23.2 remote-as 65503
    neighbor 10.10.23.2 description L3
+   neighbor 10.10.24.2 peer group UNDERLAY
+   neighbor 10.10.24.2 remote-as 65504
+   neighbor 10.10.24.2 description L4
    !
    address-family evpn
-      neighbor LEAFS activate
-      neighbor LEAFS encapsulation vxlan
+      neighbor EVPN activate
    !
    address-family ipv4
-      neighbor LEAFS activate
+      neighbor UNDERLAY activate
       network 10.10.10.2/32
 !
 end
@@ -222,85 +229,118 @@ service routing protocols model multi-agent
 !
 hostname L1
 !
-vlan 10,20
+vlan 10,20,4094
 !
-vrf instance CLIENTS
+vrf instance VRF
+!
+interface Port-Channel1
+   switchport trunk allowed vlan 10
+   switchport mode trunk
+   mlag 1
+!
+interface Port-Channel100
+   switchport mode trunk
 !
 interface Ethernet1
-   switchport access vlan 10
+   channel-group 1 mode active
 !
-interface Ethernet2
-   switchport access vlan 20
+interface Ethernet5
+   channel-group 100 mode active
+!
+interface Ethernet6
+   channel-group 100 mode active
 !
 interface Ethernet7
-   mtu 9214
+   description S2
    no switchport
    ip address 10.10.21.2/30
 !
 interface Ethernet8
-   mtu 9214
+   description S1
    no switchport
    ip address 10.10.11.2/30
 !
 interface Loopback0
    ip address 10.10.10.11/32
 !
+interface Loopback1
+   ip address 10.10.10.101/32
+   ip address 10.10.10.100/32 secondary
+!
 interface Vlan10
-   vrf CLIENTS
+   vrf VRF
    ip address virtual 192.168.10.1/24
 !
 interface Vlan20
-   vrf CLIENTS
+   vrf VRF
    ip address virtual 192.168.20.1/24
 !
-interface Vxlan1
-   vxlan source-interface Loopback0
-   vxlan udp-port 4789
-   vxlan vlan 10 vni 1010
-   vxlan vlan 20 vni 2020
-   vxlan vrf CLIENTS vni 10100
+interface Vlan4094
+   ip address 10.1.1.1/30
 !
-ip virtual-router mac-address 00:00:00:00:00:01
+interface Vxlan1
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vrf VRF vni 100100
+   vxlan mlag source-interface Loopback1
+   vxlan learn-restrict any
+!
+ip virtual-router mac-address 02:00:00:00:00:00
 !
 ip routing
-ip routing vrf CLIENTS
+ip routing vrf VRF
+!
+mlag configuration
+   domain-id MLAG
+   local-interface Vlan4094
+   peer-address 10.1.1.2
+   peer-link Port-Channel100
 !
 router bgp 65501
    router-id 10.10.10.11
    timers bgp 3 9
-   maximum-paths 2 ecmp 2
-   neighbor SPINES peer group
-   neighbor SPINES remote-as 65500
-   neighbor SPINES bfd
-   neighbor SPINES password 7 fDU2u9m4KeL5vrpR0VRCug==
-   neighbor SPINES send-community extended
-   neighbor 10.10.11.1 peer group SPINES
-   neighbor 10.10.11.1 description S1
-   neighbor 10.10.21.1 peer group SPINES
-   neighbor 10.10.21.1 description S2
+   maximum-paths 10 ecmp 10
+   neighbor EVPN peer group
+   neighbor EVPN remote-as 65500
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop 3
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY remote-as 65500
+   neighbor UNDERLAY bfd
+   neighbor UNDERLAY password 7 q1G/gCPAxox+izPj5OvcXw==
+   neighbor 10.1.1.2 remote-as 65501
+   neighbor 10.1.1.2 next-hop-self
+   neighbor 10.1.1.2 description PEER_MLAG
+   neighbor 10.10.10.1 peer group EVPN
+   neighbor 10.10.10.2 peer group EVPN
+   neighbor 10.10.11.1 peer group UNDERLAY
+   neighbor 10.10.21.1 peer group UNDERLAY
    !
    vlan 10
-      rd auto
-      route-target both 655:1010
+      rd 10.10.10.11:10
+      route-target both 655:10
       redistribute learned
    !
    vlan 20
-      rd auto
-      route-target both 655:2020
+      rd 10.10.10.11:20
+      route-target both 655:20
       redistribute learned
    !
    address-family evpn
-      neighbor SPINES activate
-      neighbor SPINES encapsulation vxlan 
+      neighbor EVPN activate
    !
    address-family ipv4
-      neighbor SPINES activate
+      neighbor UNDERLAY activate
+      neighbor 10.1.1.2 activate
       network 10.10.10.11/32
+      network 10.10.10.101/32
    !
-   vrf CLIENTS
-      rd 65501:10100
-      route-target import evpn 655:10100
-      route-target export evpn 655:10100
+   vrf VRF
+      rd 10.10.10.11:100
+      route-target import evpn 655:100
+      route-target export evpn 655:100
       redistribute connected
 !
 end
@@ -315,85 +355,117 @@ service routing protocols model multi-agent
 !
 hostname L2
 !
-vlan 10,20
+vlan 10,20,4094
 !
-vrf instance CLIENTS
+vrf instance VRF
+!
+interface Port-Channel1
+   switchport trunk allowed vlan 10
+   switchport mode trunk
+   mlag 1
+!
+interface Port-Channel100
+   switchport mode trunk
 !
 interface Ethernet1
-   switchport access vlan 10
+   channel-group 1 mode active
 !
-interface Ethernet2
-   switchport access vlan 20
+interface Ethernet5
+   channel-group 100 mode active
+!
+interface Ethernet6
+   channel-group 100 mode active
 !
 interface Ethernet7
-   mtu 9214
+   description S2
    no switchport
    ip address 10.10.22.2/30
 !
 interface Ethernet8
-   mtu 9214
+   description S1
    no switchport
    ip address 10.10.12.2/30
 !
 interface Loopback0
    ip address 10.10.10.12/32
 !
+interface Loopback1
+   ip address 10.10.10.102/32
+   ip address 10.10.10.100/32 secondary
+!
 interface Vlan10
-   vrf CLIENTS
+   vrf VRF
    ip address virtual 192.168.10.1/24
 !
 interface Vlan20
-   vrf CLIENTS
+   vrf VRF
    ip address virtual 192.168.20.1/24
 !
-interface Vxlan1
-   vxlan source-interface Loopback0
-   vxlan udp-port 4789
-   vxlan vlan 10 vni 1010
-   vxlan vlan 20 vni 2020
-   vxlan vrf CLIENTS vni 10100
+interface Vlan4094
+   ip address 10.1.1.2/30
 !
-ip virtual-router mac-address 00:00:00:00:00:01
+interface Vxlan1
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vrf VRF vni 100100
+   vxlan mlag source-interface Loopback1
+!
+ip virtual-router mac-address 02:00:00:00:00:00
 !
 ip routing
-ip routing vrf CLIENTS
+ip routing vrf VRF
 !
-router bgp 65502
+mlag configuration
+   domain-id MLAG
+   local-interface Vlan4094
+   peer-address 10.1.1.1
+   peer-link Port-Channel100
+!
+router bgp 65501
    router-id 10.10.10.12
    timers bgp 3 9
-   maximum-paths 2 ecmp 2
-   neighbor SPINES peer group
-   neighbor SPINES remote-as 65500
-   neighbor SPINES bfd
-   neighbor SPINES password 7 fDU2u9m4KeL5vrpR0VRCug==
-   neighbor SPINES send-community extended
-   neighbor 10.10.12.1 peer group SPINES
-   neighbor 10.10.12.1 description S1
-   neighbor 10.10.22.1 peer group SPINES
-   neighbor 10.10.22.1 description S2
+   maximum-paths 10 ecmp 10
+   neighbor EVPN peer group
+   neighbor EVPN remote-as 65500
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop 3
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY remote-as 65500
+   neighbor UNDERLAY bfd
+   neighbor UNDERLAY password 7 q1G/gCPAxox+izPj5OvcXw==
+   neighbor 10.1.1.1 remote-as 65501
+   neighbor 10.1.1.1 next-hop-self
+   neighbor 10.1.1.1 description PEER_MLAG
+   neighbor 10.10.10.1 peer group EVPN
+   neighbor 10.10.10.2 peer group EVPN
+   neighbor 10.10.12.1 peer group UNDERLAY
+   neighbor 10.10.22.1 peer group UNDERLAY
    !
    vlan 10
-      rd auto
-      route-target both 655:1010
+      rd 10.10.10.12:10
+      route-target both 655:10
       redistribute learned
    !
    vlan 20
-      rd auto
-      route-target both 655:2020
+      rd 10.10.10.12:20
+      route-target both 655:20
       redistribute learned
    !
    address-family evpn
-      neighbor SPINES activate
-      neighbor SPINES encapsulation vxlan 
+      neighbor EVPN activate
    !
    address-family ipv4
-      neighbor SPINES activate
+      neighbor UNDERLAY activate
+      neighbor 10.1.1.1 activate
       network 10.10.10.12/32
+      network 10.10.10.102/32
    !
-   vrf CLIENTS
-      rd 65502:10100
-      route-target import evpn 655:10100
-      route-target export evpn 655:10100
+   vrf VRF
+      rd 10.10.10.12:100
+      route-target import evpn 655:100
+      route-target export evpn 655:100
       redistribute connected
 !
 end
@@ -410,13 +482,22 @@ hostname L3
 !
 vlan 10,20
 !
-vrf instance CLIENTS
+vrf instance VRF
+!
+interface Port-Channel1
+   description SERVER
+   switchport trunk allowed vlan 20
+   switchport mode trunk
+   !
+   evpn ethernet-segment
+      identifier 0000:0000:0000:0000:0001
+      designated-forwarder election algorithm preference 20
+      route-target import 00:00:00:00:00:01
+   lacp system-id 1111.2222.3333
 !
 interface Ethernet1
-   switchport access vlan 10
-!
-interface Ethernet2
-   switchport access vlan 20
+   description SERVER
+   channel-group 1 mode active
 !
 interface Ethernet7
    mtu 9214
@@ -432,62 +513,240 @@ interface Loopback0
    ip address 10.10.10.13/32
 !
 interface Vlan10
-   vrf CLIENTS
+   vrf VRF
    ip address virtual 192.168.10.1/24
 !
 interface Vlan20
-   vrf CLIENTS
+   vrf VRF
    ip address virtual 192.168.20.1/24
 !
 interface Vxlan1
    vxlan source-interface Loopback0
    vxlan udp-port 4789
-   vxlan vlan 10 vni 1010
-   vxlan vlan 20 vni 2020
-   vxlan vrf CLIENTS vni 10100
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vrf VRF vni 100100
+   vxlan learn-restrict any
 !
 ip virtual-router mac-address 00:00:00:00:00:01
 !
 ip routing
-ip routing vrf CLIENTS
+ip routing vrf VRF
 !
 router bgp 65503
    router-id 10.10.10.13
    timers bgp 3 9
    maximum-paths 2 ecmp 2
-   neighbor SPINES peer group
-   neighbor SPINES remote-as 65500
-   neighbor SPINES bfd
-   neighbor SPINES password 7 fDU2u9m4KeL5vrpR0VRCug==
-   neighbor SPINES send-community extended
-   neighbor 10.10.13.1 peer group SPINES
-   neighbor 10.10.13.1 description S1
-   neighbor 10.10.23.1 peer group SPINES
-   neighbor 10.10.23.1 description S2
+   neighbor EVPN peer group
+   neighbor EVPN remote-as 65500
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop 3
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY remote-as 65500
+   neighbor UNDERLAY bfd
+   neighbor UNDERLAY password 7 q1G/gCPAxox+izPj5OvcXw==
+   neighbor 10.10.10.1 peer group EVPN
+   neighbor 10.10.10.2 peer group EVPN
+   neighbor 10.10.13.1 peer group UNDERLAY
+   neighbor 10.10.23.1 peer group UNDERLAY
    !
    vlan 10
-      rd auto
-      route-target both 655:1010
+      rd 10.10.10.13:10
+      route-target both 655:10
       redistribute learned
    !
    vlan 20
-      rd auto
-      route-target both 655:2020
+      rd 10.10.10.13:20
+      route-target both 655:20
       redistribute learned
    !
    address-family evpn
-      neighbor SPINES activate
-      neighbor SPINES encapsulation vxlan 
+      neighbor EVPN activate
    !
    address-family ipv4
-      neighbor SPINES activate
+      neighbor UNDERLAY activate
       network 10.10.10.13/32
    !
-   vrf CLIENTS
-      rd 65503:10100
-      route-target import evpn 655:10100
-      route-target export evpn 655:10100
+   vrf VRF
+      rd 10.10.10.13:100
+      route-target import evpn 655:100
+      route-target export evpn 655:100
       redistribute connected
+!
+end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию L4</b></summary>
+
+```bash
+service routing protocols model multi-agent
+!
+hostname L4
+!
+vlan 10,20
+!
+vrf instance VRF
+!
+interface Port-Channel1
+   description SERVER
+   switchport trunk allowed vlan 20
+   switchport mode trunk
+   !
+   evpn ethernet-segment
+      identifier 0000:0000:0000:0000:0001
+      designated-forwarder election algorithm preference 50
+      route-target import 00:00:00:00:00:01
+   lacp system-id 1111.2222.3333
+!
+interface Ethernet1
+   description SERVER
+   channel-group 1 mode active
+!
+interface Ethernet7
+   mtu 9214
+   no switchport
+   ip address 10.10.24.2/30
+!
+interface Ethernet8
+   mtu 9214
+   no switchport
+   ip address 10.10.14.2/30
+!
+interface Loopback0
+   ip address 10.10.10.14/32
+!
+interface Management1
+!
+interface Vlan10
+   vrf VRF
+   ip address virtual 192.168.10.1/24
+!
+interface Vlan20
+   vrf VRF
+   ip address virtual 192.168.20.1/24
+!
+interface Vxlan1
+   vxlan source-interface Loopback0
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vrf VRF vni 100100
+   vxlan learn-restrict any
+!
+ip virtual-router mac-address 00:00:00:00:00:01
+!
+ip routing
+ip routing vrf VRF
+!
+router bgp 65504
+   router-id 10.10.10.14
+   timers bgp 3 9
+   maximum-paths 2 ecmp 2
+   neighbor EVPN peer group
+   neighbor EVPN remote-as 65500
+   neighbor EVPN update-source Loopback0
+   neighbor EVPN ebgp-multihop 3
+   neighbor EVPN send-community extended
+   neighbor UNDERLAY peer group
+   neighbor UNDERLAY remote-as 65500
+   neighbor UNDERLAY bfd
+   neighbor UNDERLAY password 7 q1G/gCPAxox+izPj5OvcXw==
+   neighbor 10.10.10.1 peer group EVPN
+   neighbor 10.10.10.2 peer group EVPN
+   neighbor 10.10.14.1 peer group UNDERLAY
+   neighbor 10.10.24.1 peer group UNDERLAY
+   !
+   vlan 10
+      rd 10.10.10.14:10
+      route-target both 655:10
+      redistribute learned
+   !
+   vlan 20
+      rd 10.10.10.14:20
+      route-target both 655:10
+      redistribute learned
+   !
+   address-family evpn
+      neighbor EVPN activate
+   !
+   address-family ipv4
+      neighbor UNDERLAY activate
+      network 10.10.10.14/32
+   !
+   vrf VRF
+      rd 10.10.10.14:100
+      route-target import evpn 655:100
+      route-target export evpn 655:100
+      redistribute connected
+!
+end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию HOST-1</b></summary>
+
+```bash
+service routing protocols model multi-agent
+!
+hostname HOST-1
+!
+spanning-tree mode mstp
+!
+vlan 10
+!
+interface Port-Channel1
+   switchport trunk allowed vlan 10
+   switchport mode trunk
+!
+interface Ethernet1
+   channel-group 1 mode active
+!
+interface Ethernet2
+   channel-group 1 mode active
+!
+interface Vlan10
+   ip address 192.168.10.5/24
+!
+ip routing
+!
+ip route 0.0.0.0/0 192.168.10.1
+!
+end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию HOST-2</b></summary>
+
+```bash
+service routing protocols model multi-agent
+!
+hostname HOST-2
+!
+spanning-tree mode mstp
+!
+vlan 20
+!
+interface Port-Channel1
+   switchport trunk allowed vlan 20
+   switchport mode trunk
+!
+interface Ethernet1
+   channel-group 1 mode active
+!
+interface Ethernet2
+   channel-group 1 mode active
+!
+interface Vlan20
+   ip address 192.168.20.5/24
+!
+ip routing
+!
+ip route 0.0.0.0/0 192.168.20.1
 !
 end
 ```
@@ -495,7 +754,7 @@ end
 
 ## Результаты
 
-Проверим таблицу соседства BGP, таблицу полученных от соседей префиксов ipv4, таблицу маршрутизации BGP, таблицу evpn route-type 3,5. Будем проверять только LEAF, тк на Spine конфигурация осталась прежней с [L2VNI](https://github.com/bersenevns/home_work_otus/blob/main/hw5/README.md).
+Опробуем запустить пинг между хостами, проверим таблицу соседства BGP, таблицу полученных от соседей префиксов ipv4, таблицу маршрутизации BGP, таблицу evpn route-type 1,2,3,5. DJpmvtv lkz ghbvth
 
 <details>
 <summary><b>Показать результаты на L1</b></summary>
