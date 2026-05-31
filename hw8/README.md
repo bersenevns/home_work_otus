@@ -593,39 +593,6 @@ end
 ```
 </details>
 
-<details>
-<summary><b>Показать конфигурацию HOST-1</b></summary>
-
-```bash
-service routing protocols model multi-agent
-!
-hostname HOST-1
-!
-spanning-tree mode mstp
-!
-vlan 10
-!
-interface Port-Channel1
-   switchport trunk allowed vlan 10
-   switchport mode trunk
-!
-interface Ethernet1
-   channel-group 1 mode active
-!
-interface Ethernet2
-   channel-group 1 mode active
-!
-interface Vlan10
-   ip address 192.168.10.5/24
-!
-ip routing
-!
-ip route 0.0.0.0/0 192.168.10.1
-!
-end
-```
-</details>
-
 ## Результаты
 
 Проверим соседство ipv4, evpn, маршруты type 3,5, проверим, что дефолтный маршрут внесен в таблицу маршрутизации.
