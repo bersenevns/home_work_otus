@@ -31,3 +31,7 @@
 ### Домашнее задание №8
 
 [VXLAN Routing](https://github.com/bersenevns/home_work_otus/blob/main/hw8/README.md)
+
+### Итоговый проект
+
+[VXLAN Routing](https://github.com/bersenevns/home_work_otus/blob/main/hw8/README.md)
