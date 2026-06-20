@@ -4,10 +4,14 @@
 ## Цель
 
 Настроить сеть двух ЦОД по модели Active-Active с межсегментной фильтрацией трафика при помощи VxLAN EVPN.
+
 Хосты в одной сети могут взаимодействовать друг с другом по L2 между ЦОД.
+
 Выход из каждого ЦОД должен быть локальным, без использования межцодового канала.
-Маршгрутизация между сегментами сети должна осуществляться только через Firewall.
-Обратный трафик сделать симметричным с помощью SNAT на локальной Firewall.
+
+Маршрутизация между сегментами сети должна осуществляться только через Firewall.
+
+Проблему симметричного обратного трафика решитьс помощью SNAT на локальном Firewall.
 
 ---
 
@@ -61,507 +65,517 @@ VyOS будет выполнять роль FW, FW подключен к Border 
 
 1) Настраиваем BGP-соседство в address-family ipv4
 2) Настраиваем BGP-соседство с loopback0 в address-family evpn
-3) Настраиваем интерфейсы VLAN 10,20  разных VRF 1 и 2
+3) Настраиваем интерфейсы VLAN 10,20,30  разных VRF
 4) Настраиваем Anycast gateway на Leafs
-5) Настраиваем BGP-соседство между Leaf2 и FW для передачи дефолтного маршрута в фабрику
-6) Проверяем связанность между VRF на хостах
+5) Настраиваем BGP-соседство между Leaf2 и FW для передачи дефолтного маршрута в фабрику и префиксов фабрики из фабрики
+6) Проверяем связанность между VRF на хостах как в одном ЦОД, так и между ЦОД
 
 Конфигурация устройств представлена ниже, лишние строки удалены в целях читаемости.
 
 <details>
-<summary><b>Показать конфигурацию S1</b></summary>
+<summary><b>Показать конфигурацию Spine-1-1</b></summary>
 
 ```bash
 service routing protocols model multi-agent
 !
-hostname S1
+hostname Spine-1-1
 !
 interface Ethernet1
-   description L1
+   description Border-Leaf-1-1
    mtu 9214
    no switchport
-   ip address 10.10.11.1/30
+   ip address 10.11.11.1/31
 !
 interface Ethernet2
-   description L2
+   description Leaf-1-2
    mtu 9214
    no switchport
-   ip address 10.10.12.1/30
+   ip address 10.11.12.1/31
 !
 interface Ethernet3
-   description L3
+   description Leaf-1-3
    mtu 9214
    no switchport
-   ip address 10.10.13.1/30
+   ip address 10.11.13.1/31
 !
-interface Loopback0
-   ip address 10.10.10.1/32
+interface lo0
+   ip add 10.10.10.101/32
 !
 ip routing
 !
-router bgp 65500
-   router-id 10.10.10.1
+router bgp 65510
+   router-id 10.10.10.101
+   no bgp default ipv4-unicast
    timers bgp 3 9
-   maximum-paths 10 ecmp 10
-   neighbor EVPN peer group
-   neighbor EVPN update-source Loopback0
-   neighbor EVPN ebgp-multihop 3
-   neighbor EVPN send-community extended
-   neighbor 10.10.10.11 peer group EVPN
-   neighbor 10.10.10.11 remote-as 65501
-   neighbor 10.10.10.12 peer group EVPN
-   neighbor 10.10.10.12 remote-as 65502
-   neighbor 10.10.10.13 peer group EVPN
-   neighbor 10.10.10.13 remote-as 65503
-   neighbor 10.10.11.2 remote-as 65501
-   neighbor 10.10.12.2 remote-as 65502
-   neighbor 10.10.13.2 remote-as 65503
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.11 remote-as 65511
+   neighbor 10.10.10.11 update-source Loopback0
+   neighbor 10.10.10.11 description Border-Leaf-1-1
+   neighbor 10.10.10.11 ebgp-multihop 3
+   neighbor 10.10.10.11 send-community extended
+   neighbor 10.10.10.12 remote-as 65512
+   neighbor 10.10.10.12 update-source Loopback0
+   neighbor 10.10.10.12 description Leaf-1-2
+   neighbor 10.10.10.12 ebgp-multihop 3
+   neighbor 10.10.10.12 send-community extended
+   neighbor 10.10.10.13 remote-as 65513
+   neighbor 10.10.10.13 update-source Loopback0
+   neighbor 10.10.10.13 description Leaf-1-3
+   neighbor 10.10.10.13 ebgp-multihop 3
+   neighbor 10.10.10.13 send-community extended
+   neighbor 10.11.11.0 remote-as 65511
+   neighbor 10.11.11.0 bfd
+   neighbor 10.11.11.0 description Border-Leaf-1-1
+   neighbor 10.11.12.0 remote-as 65512
+   neighbor 10.11.12.0 bfd
+   neighbor 10.11.12.0 description Leaf-1-2
+   neighbor 10.11.13.0 remote-as 65513
+   neighbor 10.11.13.0 bfd
+   neighbor 10.11.13.0 description Leaf-1-3
    !
    address-family evpn
       bgp next-hop-unchanged
-      neighbor EVPN activate
+      neighbor 10.10.10.11 activate
+      neighbor 10.10.10.12 activate
+      neighbor 10.10.10.13 activate
    !
    address-family ipv4
-      neighbor 10.10.11.2 activate
-      neighbor 10.10.12.2 activate
-      neighbor 10.10.13.2 activate
-      network 10.10.10.1/32
+      neighbor 10.11.11.0 activate
+      neighbor 10.11.12.0 activate
+      neighbor 10.11.13.0 activate
+      network 10.10.10.101/32
 !
 end
+
 ```
 </details>
 
 <details>
-<summary><b>Показать конфигурацию S2</b></summary>
+<summary><b>Показать конфигурацию Border-Leaf-1-1</b></summary>
 
 ```bash
 service routing protocols model multi-agent
 !
-hostname S2
+hostname Border-Leaf-1-1
+!
+vlan 10
+   name INSIDE
+!
+vlan 101
+   name FW_INSIDE
+!
+vlan 102
+   name FW_DMZ
+!
+vlan 103
+   name FW_SECURITY
+!
+vlan 20
+   name DMZ
+!
+vlan 30
+   name SECURITY
+!
+vrf instance DMZ
+!
+vrf instance INSIDE
+!
+vrf instance SECURITY
+!
+interface Port-Channel1
+   mtu 9214
+   no switchport
+!
+interface Port-Channel1.101
+   encapsulation dot1q vlan 101
+   vrf INSIDE
+   ip address 10.11.101.0/31
+!
+interface Port-Channel1.102
+   encapsulation dot1q vlan 102
+   vrf DMZ
+   ip address 10.11.102.0/31
+!
+interface Port-Channel1.103
+   encapsulation dot1q vlan 103
+   vrf SECURITY
+   ip address 10.11.103.0/31
 !
 interface Ethernet1
-   description L1
+   description Spine-1-1
    mtu 9214
    no switchport
-   ip address 10.10.21.1/30
-!
-interface Ethernet2
-   description L2
-   mtu 9214
-   no switchport
-   ip address 10.10.22.1/30
-!
-interface Ethernet3
-   description L3
-   mtu 9214
-   no switchport
-   ip address 10.10.23.1/30
-!
-interface Loopback0
-   ip address 10.10.10.2/32
-!
-ip routing
-!
-router bgp 65500
-   router-id 10.10.10.2
-   timers bgp 3 9
-   maximum-paths 10 ecmp 10
-   neighbor EVPN peer group
-   neighbor EVPN update-source Loopback0
-   neighbor EVPN ebgp-multihop 3
-   neighbor EVPN send-community extended
-   neighbor 10.10.10.11 peer group EVPN
-   neighbor 10.10.10.11 remote-as 65501
-   neighbor 10.10.10.12 peer group EVPN
-   neighbor 10.10.10.12 remote-as 65502
-   neighbor 10.10.10.13 peer group EVPN
-   neighbor 10.10.10.13 remote-as 65503
-   neighbor 10.10.21.2 remote-as 65501
-   neighbor 10.10.22.2 remote-as 65502
-   neighbor 10.10.23.2 remote-as 65503
-   !
-   address-family evpn
-      bgp next-hop-unchanged
-      neighbor EVPN activate
-   !
-   address-family ipv4
-      neighbor 10.10.21.2 activate
-      neighbor 10.10.22.2 activate
-      neighbor 10.10.23.2 activate
-      network 10.10.10.2/32
-!
-end
-```
-</details>
-
-<details>
-<summary><b>Показать конфигурацию L1</b></summary>
-
-```bash
-service routing protocols model multi-agent
-!
-hostname L1
-!
-vlan 10,20
-!
-vrf instance 1
-!
-vrf instance 2
-!
-interface Ethernet1
-   switchport access vlan 10
-!
-interface Ethernet2
-   switchport access vlan 20
-!
-interface Ethernet3
+   ip address 10.11.11.0/31
 !
 interface Ethernet4
+   description Leaf-2-1
+   mtu 9214
+   no switchport
+   ip address 10.11.21.1/31
 !
 interface Ethernet5
+   channel-group 1 mode on
 !
 interface Ethernet6
-!
-interface Ethernet7
-   description S2
-   mtu 9214
-   no switchport
-   ip address 10.10.21.2/30
-!
-interface Ethernet8
-   description S1
-   mtu 9214
-   no switchport
-   ip address 10.10.11.2/30
+   channel-group 1 mode on
 !
 interface Loopback0
    ip address 10.10.10.11/32
 !
-interface Loopback1
-   ip address 1.1.1.1/32
-!
-interface Vlan10
-   vrf 1
-   ip address virtual 192.168.10.1/24
-!
-interface Vlan20
-   vrf 2
-   ip address virtual 192.168.20.1/24
-!
 interface Vxlan1
-   vxlan source-interface Loopback1
+   vxlan source-interface Loopback0
    vxlan udp-port 4789
    vxlan vlan 10 vni 10010
    vxlan vlan 20 vni 10020
-   vxlan vrf 1 vni 10001
-   vxlan vrf 2 vni 10002
-!
-ip virtual-router mac-address 00:00:11:11:22:22
+   vxlan vlan 30 vni 10030
+   vxlan vrf DMZ vni 10200
+   vxlan vrf INSIDE vni 10100
+   vxlan vrf SECURITY vni 10300
 !
 ip routing
-ip routing vrf 1
-ip routing vrf 2
+ip routing vrf DMZ
+ip routing vrf INSIDE
+ip routing vrf SECURITY
 !
-router bgp 65501
+router bgp 65511
    router-id 10.10.10.11
+   no bgp default ipv4-unicast
    timers bgp 3 9
-   maximum-paths 2 ecmp 2
-   neighbor 10.10.10.1 remote-as 65500
-   neighbor 10.10.10.1 update-source Loopback0
-   neighbor 10.10.10.1 description S1-evpn
-   neighbor 10.10.10.1 ebgp-multihop 3
-   neighbor 10.10.10.1 send-community extended
-   neighbor 10.10.10.2 remote-as 65500
-   neighbor 10.10.10.2 update-source Loopback0
-   neighbor 10.10.10.2 description S2-evpn
-   neighbor 10.10.10.2 ebgp-multihop 3
-   neighbor 10.10.10.2 send-community extended
-   neighbor 10.10.11.1 remote-as 65500
-   neighbor 10.10.11.1 description S1-ipv4
-   neighbor 10.10.21.1 remote-as 65500
-   neighbor 10.10.21.1 description S2-ipv4
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.21 remote-as 65521
+   neighbor 10.10.10.21 update-source Loopback0
+   neighbor 10.10.10.21 description Leaf-2-1
+   neighbor 10.10.10.21 ebgp-multihop 3
+   neighbor 10.10.10.21 send-community extended
+   neighbor 10.10.10.101 remote-as 65510
+   neighbor 10.10.10.101 update-source Loopback0
+   neighbor 10.10.10.101 description Spine-1-1
+   neighbor 10.10.10.101 ebgp-multihop 3
+   neighbor 10.10.10.101 send-community extended
+   neighbor 10.11.11.1 remote-as 65510
+   neighbor 10.11.11.1 bfd
+   neighbor 10.11.11.1 description Spine-1-1
+   neighbor 10.11.21.0 remote-as 65521
+   neighbor 10.11.21.0 bfd
+   neighbor 10.11.21.0 description Leaf-2-1
+   neighbor 10.11.21.2 remote-as 65521
+   neighbor 10.11.21.2 bfd
+   neighbor 10.11.21.2 description Leaf-2-1
    !
    vlan 10
       rd 10.10.10.11:10
-      route-target both 655:10
+      route-target both 10:10
       redistribute learned
    !
    vlan 20
       rd 10.10.10.11:20
-      route-target both 655:20
+      route-target both 20:20
+      redistribute learned
+   !
+   vlan 30
+      rd 10.10.10.11:30
+      route-target both 30:30
       redistribute learned
    !
    address-family evpn
-      bgp next-hop-unchanged
-      neighbor 10.10.10.1 activate
-      neighbor 10.10.10.1 encapsulation vxlan 
-      neighbor 10.10.10.2 activate
-      neighbor 10.10.10.2 encapsulation vxlan 
+      neighbor 10.10.10.21 activate
+      neighbor 10.10.10.101 activate
    !
    address-family ipv4
-      neighbor 10.10.11.1 activate
-      neighbor 10.10.21.1 activate
-      network 1.1.1.1/32
+      neighbor 10.11.11.1 activate
+      neighbor 10.11.21.0 activate
+      neighbor 10.11.21.2 activate
       network 10.10.10.11/32
    !
-   vrf 1
-      rd 10.10.10.11:1
-      route-target import evpn 655:1
-      route-target export evpn 655:1
-      redistribute connected
+   vrf DMZ
+      rd 10.10.10.11:200
+      route-target import evpn 200:200
+      route-target export evpn 200:200
+      neighbor 10.11.102.1 remote-as 65501
+      !
+      address-family ipv4
+         neighbor 10.11.102.1 activate
    !
-   vrf 2
-      rd 10.10.10.11:2
-      route-target import evpn 655:2
-      route-target export evpn 655:2
-      redistribute connected
+   vrf INSIDE
+      rd 10.10.10.11:100
+      route-target import evpn 100:100
+      route-target export evpn 100:100
+      neighbor 10.11.101.1 remote-as 65501
+      !
+      address-family ipv4
+         neighbor 10.11.101.1 activate
+   !
+   vrf SECURITY
+      rd 10.10.10.11:300
+      route-target import evpn 300:300
+      route-target export evpn 300:300
+      neighbor 10.11.103.1 remote-as 65501
+      !
+      address-family ipv4
+         neighbor 10.11.103.1 activate
 !
 end
 ```
 </details>
 
 <details>
-<summary><b>Показать конфигурацию L2</b></summary>
+<summary><b>Показать конфигурацию Leaf-1-2</b></summary>
 
 ```bash
 service routing protocols model multi-agent
 !
-hostname L2
+hostname Leaf-1-2
 !
-vlan 10,20
+vlan 10
+   name INSIDE
 !
-vrf instance 1
+vlan 20
+   name DMZ
 !
-vrf instance 2
+vlan 30
+   name SECURITY
+!
+vrf instance DMZ
+!
+vrf instance INSIDE
+!
+vrf instance SECURITY
 !
 interface Ethernet1
+   description Spine-1-1
+   mtu 9214
    no switchport
-   vrf 1
-   ip address 172.20.1.2/30
-!
-interface Ethernet2
-   no switchport
-   vrf 2
-   ip address 172.20.2.2/30
+   ip address 10.11.12.0/31
 !
 interface Ethernet7
-   description S2
+   description VLAN_20
    mtu 9214
-   no switchport
-   ip address 10.10.22.2/30
+   switchport access vlan 20
 !
 interface Ethernet8
-   description S1
+   description VLAN_10
    mtu 9214
-   no switchport
-   ip address 10.10.12.2/30
+   switchport access vlan 10
 !
 interface Loopback0
    ip address 10.10.10.12/32
 !
-interface Loopback1
-   ip address 2.2.2.2/32
-!
 interface Vlan10
-   vrf 1
+   mtu 9214
+   vrf INSIDE
    ip address virtual 192.168.10.1/24
 !
 interface Vlan20
-   vrf 2
+   mtu 9214
+   vrf DMZ
    ip address virtual 192.168.20.1/24
 !
+interface Vlan30
+   mtu 9214
+   vrf SECURITY
+   ip address virtual 192.168.30.1/24
+!
 interface Vxlan1
-   vxlan source-interface Loopback1
+   vxlan source-interface Loopback0
    vxlan udp-port 4789
    vxlan vlan 10 vni 10010
    vxlan vlan 20 vni 10020
-   vxlan vrf 1 vni 10001
-   vxlan vrf 2 vni 10002
+   vxlan vlan 30 vni 10030
+   vxlan vrf DMZ vni 10200
+   vxlan vrf INSIDE vni 10100
+   vxlan vrf SECURITY vni 10300
 !
 ip virtual-router mac-address 00:00:11:11:22:22
 !
 ip routing
-ip routing vrf 1
-ip routing vrf 2
+ip routing vrf DMZ
+ip routing vrf INSIDE
+ip routing vrf SECURITY
 !
-router bgp 65502
+router bgp 65512
    router-id 10.10.10.12
+   no bgp default ipv4-unicast
    timers bgp 3 9
-   maximum-paths 2 ecmp 2
-   neighbor 10.10.10.1 remote-as 65500
-   neighbor 10.10.10.1 update-source Loopback0
-   neighbor 10.10.10.1 ebgp-multihop 3
-   neighbor 10.10.10.1 send-community extended
-   neighbor 10.10.10.2 remote-as 65500
-   neighbor 10.10.10.2 update-source Loopback0
-   neighbor 10.10.10.2 ebgp-multihop 3
-   neighbor 10.10.10.2 send-community extended
-   neighbor 10.10.12.1 remote-as 65500
-   neighbor 10.10.22.1 remote-as 65500
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.101 remote-as 65510
+   neighbor 10.10.10.101 update-source Loopback0
+   neighbor 10.10.10.101 description Spine-1-1
+   neighbor 10.10.10.101 ebgp-multihop 3
+   neighbor 10.10.10.101 send-community extended
+   neighbor 10.11.12.1 remote-as 65510
+   neighbor 10.11.12.1 bfd
+   neighbor 10.11.12.1 description Spine-1-1
    !
    vlan 10
       rd 10.10.10.12:10
-      route-target both 655:10
+      route-target both 10:10
       redistribute learned
    !
    vlan 20
       rd 10.10.10.12:20
-      route-target both 655:20
+      route-target both 20:20
+      redistribute learned
+   !
+   vlan 30
+      rd 10.10.10.12:30
+      route-target both 30:30
       redistribute learned
    !
    address-family evpn
-      bgp next-hop-unchanged
-      neighbor 10.10.10.1 activate
-      neighbor 10.10.10.1 encapsulation vxlan 
-      neighbor 10.10.10.2 activate
-      neighbor 10.10.10.2 encapsulation vxlan 
+      neighbor 10.10.10.101 activate
    !
    address-family ipv4
-      neighbor 10.10.12.1 activate
-      neighbor 10.10.22.1 activate
-      network 2.2.2.2/32
+      neighbor 10.11.12.1 activate
       network 10.10.10.12/32
    !
-   vrf 1
-      rd 10.10.10.12:1
-      route-target import evpn 655:1
-      route-target export evpn 655:1
-      neighbor 172.20.1.1 remote-as 65555
+   vrf DMZ
+      rd 10.10.10.12:200
+      route-target import evpn 200:200
+      route-target export evpn 200:200
       redistribute connected
-      !
-      address-family ipv4
-         neighbor 172.20.1.1 activate
    !
-   vrf 2
-      rd 10.10.10.12:2
-      route-target import evpn 655:2
-      route-target export evpn 655:2
-      neighbor 172.20.2.1 remote-as 65555
+   vrf INSIDE
+      rd 10.10.10.12:100
+      route-target import evpn 100:100
+      route-target export evpn 100:100
       redistribute connected
-      !
-      address-family ipv4
-         neighbor 172.20.2.1 activate
+   !
+   vrf SECURITY
+      rd 10.10.10.12:300
+      route-target import evpn 300:300
+      route-target export evpn 300:300
+      redistribute connected
 !
 end
 ```
 </details>
 
 <details>
-<summary><b>Показать конфигурацию L3</b></summary>
+<summary><b>Показать конфигурацию Leaf-1-3</b></summary>
 
 ```bash
 service routing protocols model multi-agent
 !
-hostname L3
+hostname Leaf-1-3
 !
-vlan 10,20
+vlan 10
+   name INSIDE
 !
-vrf instance 1
+vlan 20
+   name DMZ
 !
-vrf instance 2
+vlan 30
+   name SECURITY
+!
+vrf instance DMZ
+!
+vrf instance INSIDE
+!
+vrf instance SECURITY
 !
 interface Ethernet1
-   switchport access vlan 10
-!
-interface Ethernet2
-   switchport access vlan 20
-!
-interface Ethernet3
-!
-interface Ethernet4
-!
-interface Ethernet5
-!
-interface Ethernet6
+   description Spine-1-1
+   mtu 9214
+   no switchport
+   ip address 10.11.13.0/31
 !
 interface Ethernet7
-   description S2
+   description VLAN_20
    mtu 9214
-   no switchport
-   ip address 10.10.23.2/30
+   switchport access vlan 20
 !
 interface Ethernet8
-   description S1
+   description VLAN_10
    mtu 9214
-   no switchport
-   ip address 10.10.13.2/30
+   switchport access vlan 10
 !
 interface Loopback0
    ip address 10.10.10.13/32
 !
-interface Loopback1
-   ip address 3.3.3.3/32
-!
 interface Vlan10
-   vrf 1
+   mtu 9214
+   vrf INSIDE
    ip address virtual 192.168.10.1/24
 !
 interface Vlan20
-   vrf 2
+   mtu 9214
+   vrf DMZ
    ip address virtual 192.168.20.1/24
 !
+interface Vlan30
+   mtu 9214
+   vrf SECURITY
+   ip address virtual 192.168.30.1/24
+!
 interface Vxlan1
-   vxlan source-interface Loopback1
+   vxlan source-interface Loopback0
    vxlan udp-port 4789
    vxlan vlan 10 vni 10010
    vxlan vlan 20 vni 10020
-   vxlan vrf 1 vni 10001
-   vxlan vrf 2 vni 10002
+   vxlan vlan 30 vni 10030
+   vxlan vrf DMZ vni 10200
+   vxlan vrf INSIDE vni 10100
+   vxlan vrf SECURITY vni 10300
 !
 ip virtual-router mac-address 00:00:11:11:22:22
 !
 ip routing
-ip routing vrf 1
-ip routing vrf 2
+ip routing vrf DMZ
+ip routing vrf INSIDE
+ip routing vrf SECURITY
 !
-router bgp 65503
+router bgp 65513
    router-id 10.10.10.13
+   no bgp default ipv4-unicast
    timers bgp 3 9
-   maximum-paths 2 ecmp 2
-   neighbor 10.10.10.1 remote-as 65500
-   neighbor 10.10.10.1 update-source Loopback0
-   neighbor 10.10.10.1 ebgp-multihop 3
-   neighbor 10.10.10.1 send-community extended
-   neighbor 10.10.10.2 remote-as 65500
-   neighbor 10.10.10.2 update-source Loopback0
-   neighbor 10.10.10.2 ebgp-multihop 3
-   neighbor 10.10.10.2 send-community extended
-   neighbor 10.10.13.1 remote-as 65500
-   neighbor 10.10.23.1 remote-as 65500
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.101 remote-as 65510
+   neighbor 10.10.10.101 update-source Loopback0
+   neighbor 10.10.10.101 description Spine-1-1
+   neighbor 10.10.10.101 ebgp-multihop 3
+   neighbor 10.10.10.101 send-community extended
+   neighbor 10.11.13.1 remote-as 65510
+   neighbor 10.11.13.1 bfd
+   neighbor 10.11.13.1 description Spine-1-1
    !
    vlan 10
       rd 10.10.10.13:10
-      route-target both 655:10
+      route-target both 10:10
       redistribute learned
    !
    vlan 20
       rd 10.10.10.13:20
-      route-target both 655:20
+      route-target both 20:20
+      redistribute learned
+   !
+   vlan 30
+      rd 10.10.10.13:30
+      route-target both 30:30
       redistribute learned
    !
    address-family evpn
-      bgp next-hop-unchanged
-      neighbor 10.10.10.1 activate
-      neighbor 10.10.10.1 encapsulation vxlan 
-      neighbor 10.10.10.2 activate
-      neighbor 10.10.10.2 encapsulation vxlan 
+      neighbor 10.10.10.101 activate
    !
    address-family ipv4
-      neighbor 10.10.13.1 activate
-      neighbor 10.10.23.1 activate
-      network 3.3.3.3/32
+      neighbor 10.11.13.1 activate
       network 10.10.10.13/32
    !
-   vrf 1
-      rd 10.10.10.13:1
-      route-target import evpn 655:1
-      route-target export evpn 655:1
+   vrf DMZ
+      rd 10.10.10.13:200
+      route-target import evpn 200:200
+      route-target export evpn 200:200
       redistribute connected
    !
-   vrf 2
-      rd 10.10.10.13:2
-      route-target import evpn 655:2
-      route-target export evpn 655:2
+   vrf INSIDE
+      rd 10.10.10.13:100
+      route-target import evpn 100:100
+      route-target export evpn 100:100
+      redistribute connected
+   !
+   vrf SECURITY
+      rd 10.10.10.13:300
+      route-target import evpn 300:300
+      route-target export evpn 300:300
       redistribute connected
 !
 end
@@ -569,36 +583,633 @@ end
 </details>
 
 <details>
-<summary><b>Показать конфигурацию FW</b></summary>
+<summary><b>Показать конфигурацию FW-1</b></summary>
+
+```bash
+configure
+
+set interfaces bonding bond0 mode xor-hash
+set interfaces bonding bond0 member interface eth1
+set interfaces bonding bond0 member interface eth2
+
+set interfaces bonding bond0 vif 101 address '10.11.101.1/31'
+set interfaces bonding bond0 vif 102 address '10.11.102.1/31'
+set interfaces bonding bond0 vif 103 address '10.11.103.1/31'
+
+set protocols bgp system-as '65501'
+
+set protocols bgp neighbor 10.11.101.0 remote-as '65511'
+set protocols bgp neighbor 10.11.102.0 remote-as '65511'
+set protocols bgp neighbor 10.11.103.0 remote-as '65511'
+
+set protocols static route 0.0.0.0/0 next-hop 1.1.1.1
+
+set protocols bgp neighbor 10.11.101.0 address-family ipv4-unicast default-originate
+set protocols bgp neighbor 10.11.102.0 address-family ipv4-unicast default-originate
+set protocols bgp neighbor 10.11.103.0 address-family ipv4-unicast default-originate
+
+set nat source rule 10 source address '192.168.10.0/24'
+set nat source rule 10 destination address '192.168.20.0/24'
+set nat source rule 10 outbound-interface name 'bond0.102'
+set nat source rule 10 translation address 'masquerade'
+
+set nat source rule 20 source address '192.168.10.0/24'
+set nat source rule 20 destination address '192.168.30.0/24'
+set nat source rule 20 outbound-interface name 'bond0.103'
+set nat source rule 20 translation address 'masquerade'
+
+set nat source rule 30 source address '192.168.20.0/24'
+set nat source rule 30 destination address '192.168.10.0/24'
+set nat source rule 30 outbound-interface name 'bond0.101'
+set nat source rule 30 translation address 'masquerade'
+
+set nat source rule 40 source address '192.168.20.0/24'
+set nat source rule 40 destination address '192.168.30.0/24'
+set nat source rule 40 outbound-interface name 'bond0.103'
+set nat source rule 40 translation address 'masquerade'
+
+set nat source rule 50 source address '192.168.30.0/24'
+set nat source rule 50 destination address '192.168.10.0/24'
+set nat source rule 50 outbound-interface name 'bond0.101'
+set nat source rule 50 translation address 'masquerade'
+
+set nat source rule 60 source address '192.168.30.0/24'
+set nat source rule 60 destination address '192.168.20.0/24'
+set nat source rule 60 outbound-interface name 'bond0.102'
+set nat source rule 60 translation address 'masquerade'
+
+commit
+save
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию Spine-2-1</b></summary>
 
 ```bash
 service routing protocols model multi-agent
 !
-hostname FW
+hostname Spine-2-1
 !
 interface Ethernet1
+   description Border-Leaf-2-1
+   mtu 9214
    no switchport
-   ip address 172.20.1.1/30
+   ip address 10.21.21.1/31
 !
 interface Ethernet2
+   description Leaf-2-2
+   mtu 9214
    no switchport
-   ip address 172.20.2.1/30
+   ip address 10.21.22.1/31
+!
+interface Ethernet3
+   description Leaf-2-3
+   mtu 9214
+   no switchport
+   ip address 10.21.23.1/31
+!
+interface lo0
+   ip add 10.10.10.201/32
 !
 ip routing
 !
-ip route 0.0.0.0/0 Null0
-!
-router bgp 65555
-   router-id 10.10.10.10
-   neighbor 172.20.1.2 remote-as 65502
-   neighbor 172.20.2.2 remote-as 65502
-   redistribute static
+router bgp 65520
+   router-id 10.10.10.201
+   no bgp default ipv4-unicast
+   timers bgp 3 9
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.21 remote-as 65521
+   neighbor 10.10.10.21 update-source Loopback0
+   neighbor 10.10.10.21 description Border-Leaf-2-1
+   neighbor 10.10.10.21 ebgp-multihop 3
+   neighbor 10.10.10.21 send-community extended
+   neighbor 10.10.10.22 remote-as 65522
+   neighbor 10.10.10.22 update-source Loopback0
+   neighbor 10.10.10.22 description Leaf-2-2
+   neighbor 10.10.10.22 ebgp-multihop 3
+   neighbor 10.10.10.22 send-community extended
+   neighbor 10.10.10.23 remote-as 65523
+   neighbor 10.10.10.23 update-source Loopback0
+   neighbor 10.10.10.23 description Leaf-2-3
+   neighbor 10.10.10.23 ebgp-multihop 3
+   neighbor 10.10.10.23 send-community extended
+   neighbor 10.21.21.0 remote-as 65521
+   neighbor 10.21.21.0 bfd
+   neighbor 10.21.21.0 description Border-Leaf-2-1
+   neighbor 10.21.22.0 remote-as 65522
+   neighbor 10.21.22.0 bfd
+   neighbor 10.21.22.0 description Leaf-2-2
+   neighbor 10.21.23.0 remote-as 65523
+   neighbor 10.21.23.0 bfd
+   neighbor 10.21.23.0 description Leaf-2-3
+   !
+   address-family evpn
+      bgp next-hop-unchanged
+      neighbor 10.10.10.21 activate
+      neighbor 10.10.10.22 activate
+      neighbor 10.10.10.23 activate
    !
    address-family ipv4
-      neighbor 172.20.1.2 activate
-      neighbor 172.20.2.2 activate
+      neighbor 10.21.21.0 activate
+      neighbor 10.21.22.0 activate
+      neighbor 10.21.23.0 activate
+      network 10.10.10.201/32
 !
 end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию Border-Leaf-2-1</b></summary>
+
+```bash
+service routing protocols model multi-agent
+!
+hostname Border-Leaf-2-1
+!
+vlan 10
+   name INSIDE
+!
+vlan 101
+   name FW_INSIDE
+!
+vlan 102
+   name FW_DMZ
+!
+vlan 103
+   name FW_SECURITY
+!
+vlan 20
+   name DMZ
+!
+vlan 30
+   name SECURITY
+!
+vrf instance DMZ
+!
+vrf instance INSIDE
+!
+vrf instance SECURITY
+!
+interface Port-Channel1
+   mtu 9214
+   no switchport
+!
+interface Port-Channel1.101
+   encapsulation dot1q vlan 101
+   vrf INSIDE
+   ip address 10.21.101.0/31
+!
+interface Port-Channel1.102
+   encapsulation dot1q vlan 102
+   vrf DMZ
+   ip address 10.21.102.0/31
+!
+interface Port-Channel1.103
+   encapsulation dot1q vlan 103
+   vrf SECURITY
+   ip address 10.21.103.0/31
+!
+interface Ethernet1
+   description Spine-2-1
+   mtu 9214
+   no switchport
+   ip address 10.21.21.0/31
+!
+interface Ethernet4
+   description Leaf-1-1
+   mtu 9214
+   no switchport
+   ip address 10.11.21.0/31
+!
+interface Ethernet5
+   channel-group 1 mode on
+!
+interface Ethernet6
+   channel-group 1 mode on
+!
+interface Loopback0
+   ip address 10.10.10.21/32
+!
+interface Vxlan1
+   vxlan source-interface Loopback0
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vlan 30 vni 10030
+   vxlan vrf DMZ vni 10200
+   vxlan vrf INSIDE vni 10100
+   vxlan vrf SECURITY vni 10300
+!
+ip routing
+ip routing vrf DMZ
+ip routing vrf INSIDE
+ip routing vrf SECURITY
+!
+router bgp 65521
+   router-id 10.10.10.21
+   no bgp default ipv4-unicast
+   timers bgp 3 9
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.11 remote-as 65511
+   neighbor 10.10.10.11 update-source Loopback0
+   neighbor 10.10.10.11 description Leaf-1-1
+   neighbor 10.10.10.11 ebgp-multihop 3
+   neighbor 10.10.10.11 send-community extended
+   neighbor 10.10.10.201 remote-as 65520
+   neighbor 10.10.10.201 update-source Loopback0
+   neighbor 10.10.10.201 description Spine-2-1
+   neighbor 10.10.10.201 ebgp-multihop 3
+   neighbor 10.10.10.201 send-community extended
+   neighbor 10.21.21.1 remote-as 65520
+   neighbor 10.21.21.1 bfd
+   neighbor 10.21.21.1 description Spine-2-1
+   neighbor 10.11.21.1 remote-as 65511
+   neighbor 10.11.21.1 bfd
+   neighbor 10.11.21.1 description Leaf-1-1
+   neighbor 10.11.21.3 remote-as 65511
+   neighbor 10.11.21.3 bfd
+   neighbor 10.11.21.3 description Leaf-1-1
+   !
+   vlan 10
+      rd 10.10.10.21:10
+      route-target both 10:10
+      redistribute learned
+   !
+   vlan 20
+      rd 10.10.10.21:20
+      route-target both 20:20
+      redistribute learned
+   !
+   vlan 30
+      rd 10.10.10.21:30
+      route-target both 30:30
+      redistribute learned
+   !
+   address-family evpn
+      neighbor 10.10.10.11 activate
+      neighbor 10.10.10.201 activate
+   !
+   address-family ipv4
+      neighbor 10.21.21.1 activate
+      neighbor 10.11.21.1 activate
+      neighbor 10.11.21.3 activate
+      network 10.10.10.21/32
+   !
+   vrf DMZ
+      rd 10.10.10.21:200
+      route-target import evpn 200:200
+      route-target export evpn 200:200
+      neighbor 10.21.102.1 remote-as 65502
+      !
+      address-family ipv4
+         neighbor 10.21.102.1 activate
+   !
+   vrf INSIDE
+      rd 10.10.10.21:100
+      route-target import evpn 100:100
+      route-target export evpn 100:100
+      neighbor 10.21.101.1 remote-as 65502
+      !
+      address-family ipv4
+         neighbor 10.21.101.1 activate
+   !
+   vrf SECURITY
+      rd 10.10.10.21:300
+      route-target import evpn 300:300
+      route-target export evpn 300:300
+      neighbor 10.21.103.1 remote-as 65502
+      !
+      address-family ipv4
+         neighbor 10.21.103.1 activate
+!
+end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию Leaf-2-2</b></summary>
+
+```bash
+service routing protocols model multi-agent
+!
+hostname Leaf-2-2
+!
+vlan 10
+   name INSIDE
+!
+vlan 20
+   name DMZ
+!
+vlan 30
+   name SECURITY
+!
+vrf instance DMZ
+!
+vrf instance INSIDE
+!
+vrf instance SECURITY
+!
+interface Ethernet1
+   description Spine-2-1
+   mtu 9214
+   no switchport
+   ip address 10.21.22.0/31
+!
+interface Ethernet7
+   description VLAN_20
+   mtu 9214
+   switchport access vlan 20
+!
+interface Ethernet8
+   description VLAN_10
+   mtu 9214
+   switchport access vlan 10
+!
+interface Loopback0
+   ip address 10.10.10.22/32
+!
+interface Vlan10
+   mtu 9214
+   vrf INSIDE
+   ip address virtual 192.168.10.1/24
+!
+interface Vlan20
+   mtu 9214
+   vrf DMZ
+   ip address virtual 192.168.20.1/24
+!
+interface Vlan30
+   mtu 9214
+   vrf SECURITY
+   ip address virtual 192.168.30.1/24
+!
+interface Vxlan1
+   vxlan source-interface Loopback0
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vlan 30 vni 10030
+   vxlan vrf DMZ vni 10200
+   vxlan vrf INSIDE vni 10100
+   vxlan vrf SECURITY vni 10300
+!
+ip virtual-router mac-address 00:00:11:11:22:22
+!
+ip routing
+ip routing vrf DMZ
+ip routing vrf INSIDE
+ip routing vrf SECURITY
+!
+router bgp 65522
+   router-id 10.10.10.22
+   no bgp default ipv4-unicast
+   timers bgp 3 9
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.201 remote-as 65520
+   neighbor 10.10.10.201 update-source Loopback0
+   neighbor 10.10.10.201 description Spine-2-1
+   neighbor 10.10.10.201 ebgp-multihop 3
+   neighbor 10.10.10.201 send-community extended
+   neighbor 10.21.22.1 remote-as 65520
+   neighbor 10.21.22.1 bfd
+   neighbor 10.21.22.1 description Spine-2-1
+   !
+   vlan 10
+      rd 10.10.10.22:10
+      route-target both 10:10
+      redistribute learned
+   !
+   vlan 20
+      rd 10.10.10.22:20
+      route-target both 20:20
+      redistribute learned
+   !
+   vlan 30
+      rd 10.10.10.22:30
+      route-target both 30:30
+      redistribute learned
+   !
+   address-family evpn
+      neighbor 10.10.10.201 activate
+   !
+   address-family ipv4
+      neighbor 10.21.22.1 activate
+      network 10.10.10.22/32
+   !
+   vrf DMZ
+      rd 10.10.10.22:200
+      route-target import evpn 200:200
+      route-target export evpn 200:200
+      redistribute connected
+   !
+   vrf INSIDE
+      rd 10.10.10.22:100
+      route-target import evpn 100:100
+      route-target export evpn 100:100
+      redistribute connected
+   !
+   vrf SECURITY
+      rd 10.10.10.22:300
+      route-target import evpn 300:300
+      route-target export evpn 300:300
+      redistribute connected
+!
+end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию Leaf-2-3</b></summary>
+
+```bash
+service routing protocols model multi-agent
+!
+hostname Leaf-2-3
+!
+vlan 10
+   name INSIDE
+!
+vlan 20
+   name DMZ
+!
+vlan 30
+   name SECURITY
+!
+vrf instance DMZ
+!
+vrf instance INSIDE
+!
+vrf instance SECURITY
+!
+interface Ethernet1
+   description Spine-2-1
+   mtu 9214
+   no switchport
+   ip address 10.21.23.0/31
+!
+interface Ethernet7
+   description VLAN_20
+   mtu 9214
+   switchport access vlan 20
+!
+interface Ethernet8
+   description VLAN_10
+   mtu 9214
+   switchport access vlan 10
+!
+interface Loopback0
+   ip address 10.10.10.23/32
+!
+interface Vlan10
+   mtu 9214
+   vrf INSIDE
+   ip address virtual 192.168.10.1/24
+!
+interface Vlan20
+   mtu 9214
+   vrf DMZ
+   ip address virtual 192.168.20.1/24
+!
+interface Vlan30
+   mtu 9214
+   vrf SECURITY
+   ip address virtual 192.168.30.1/24
+!
+interface Vxlan1
+   vxlan source-interface Loopback0
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 10010
+   vxlan vlan 20 vni 10020
+   vxlan vlan 30 vni 10030
+   vxlan vrf DMZ vni 10200
+   vxlan vrf INSIDE vni 10100
+   vxlan vrf SECURITY vni 10300
+!
+ip virtual-router mac-address 00:00:11:11:22:22
+!
+ip routing
+ip routing vrf DMZ
+ip routing vrf INSIDE
+ip routing vrf SECURITY
+!
+router bgp 65523
+   router-id 10.10.10.23
+   no bgp default ipv4-unicast
+   timers bgp 3 9
+   maximum-paths 4 ecmp 4
+   neighbor 10.10.10.201 remote-as 65520
+   neighbor 10.10.10.201 update-source Loopback0
+   neighbor 10.10.10.201 description Spine-2-1
+   neighbor 10.10.10.201 ebgp-multihop 3
+   neighbor 10.10.10.201 send-community extended
+   neighbor 10.21.23.1 remote-as 65520
+   neighbor 10.21.23.1 bfd
+   neighbor 10.21.23.1 description Spine-2-1
+   !
+   vlan 10
+      rd 10.10.10.23:10
+      route-target both 10:10
+      redistribute learned
+   !
+   vlan 20
+      rd 10.10.10.23:20
+      route-target both 20:20
+      redistribute learned
+   !
+   vlan 30
+      rd 10.10.10.23:30
+      route-target both 30:30
+      redistribute learned
+   !
+   address-family evpn
+      neighbor 10.10.10.201 activate
+   !
+   address-family ipv4
+      neighbor 10.21.23.1 activate
+      network 10.10.10.23/32
+   !
+   vrf DMZ
+      rd 10.10.10.23:200
+      route-target import evpn 200:200
+      route-target export evpn 200:200
+      redistribute connected
+   !
+   vrf INSIDE
+      rd 10.10.10.23:100
+      route-target import evpn 100:100
+      route-target export evpn 100:100
+      redistribute connected
+   !
+   vrf SECURITY
+      rd 10.10.10.23:300
+      route-target import evpn 300:300
+      route-target export evpn 300:300
+      redistribute connected
+!
+end
+```
+</details>
+
+<details>
+<summary><b>Показать конфигурацию FW-2</b></summary>
+
+```bash
+configure
+
+set interfaces bonding bond0 mode xor-hash
+set interfaces bonding bond0 member interface eth1
+set interfaces bonding bond0 member interface eth2
+
+set interfaces bonding bond0 vif 101 address '10.21.101.1/31'
+set interfaces bonding bond0 vif 102 address '10.21.102.1/31'
+set interfaces bonding bond0 vif 103 address '10.21.103.1/31'
+
+set protocols bgp system-as '65502'
+
+set protocols bgp neighbor 10.21.101.0 remote-as '65521'
+set protocols bgp neighbor 10.21.102.0 remote-as '65521'
+set protocols bgp neighbor 10.21.103.0 remote-as '65521'
+
+set protocols static route 0.0.0.0/0 next-hop 1.1.1.1
+
+set protocols bgp neighbor 10.21.101.0 address-family ipv4-unicast default-originate
+set protocols bgp neighbor 10.21.102.0 address-family ipv4-unicast default-originate
+set protocols bgp neighbor 10.21.103.0 address-family ipv4-unicast default-originate
+
+set nat source rule 10 source address '192.168.10.0/24'
+set nat source rule 10 destination address '192.168.20.0/24'
+set nat source rule 10 outbound-interface name 'bond0.102'
+set nat source rule 10 translation address 'masquerade'
+
+set nat source rule 20 source address '192.168.10.0/24'
+set nat source rule 20 destination address '192.168.30.0/24'
+set nat source rule 20 outbound-interface name 'bond0.103'
+set nat source rule 20 translation address 'masquerade'
+
+set nat source rule 30 source address '192.168.20.0/24'
+set nat source rule 30 destination address '192.168.10.0/24'
+set nat source rule 30 outbound-interface name 'bond0.101'
+set nat source rule 30 translation address 'masquerade'
+
+set nat source rule 40 source address '192.168.20.0/24'
+set nat source rule 40 destination address '192.168.30.0/24'
+set nat source rule 40 outbound-interface name 'bond0.103'
+set nat source rule 40 translation address 'masquerade'
+
+set nat source rule 50 source address '192.168.30.0/24'
+set nat source rule 50 destination address '192.168.10.0/24'
+set nat source rule 50 outbound-interface name 'bond0.101'
+set nat source rule 50 translation address 'masquerade'
+
+set nat source rule 60 source address '192.168.30.0/24'
+set nat source rule 60 destination address '192.168.20.0/24'
+set nat source rule 60 outbound-interface name 'bond0.102'
+set nat source rule 60 translation address 'masquerade'
+
+commit
+save
 ```
 </details>
 
