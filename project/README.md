@@ -21,7 +21,14 @@
 
 Выделено три сегмента: INSIDE (vlan 10), DMZ (vlan 20), SECURITY (vlan 30).
 
-Vlan 10 - vni 10010, Vlan 20 - vni 10020, vrf INSIDE - vni 10100, vrf DMZ - vni 10200, vrf SECURITY - vni 10300.
+| mapping      | VNI       | 
+|--------------|-----------|
+| Vlan 10      | vni 10010 | 
+| Vlan 20      | vni 10020 | 
+| Vlan 30      | vni 10030 |
+| vrf INSIDE   | vni 10100 |
+| vrf DMZ      | vni 10200 |
+| vrf SECURITY | vni 10300 |
 
 VyOS будет выполнять роль FW, FW подключен к Border Leaf в каждом ЦОД. FW анонсирует дефолтный маршрут по всей фабрике (для простоты дефолт будет статический redistributed).
 
