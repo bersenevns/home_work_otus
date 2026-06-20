@@ -25,7 +25,7 @@ Vlan 10 - vni 10010, Vlan 20 - vni 10020, vrf INSIDE - vni 10100, vrf DMZ - vni 
 
 VyOS будет выполнять роль FW, FW подключен к Border Leaf в каждом ЦОД. FW анонсирует дефолтный маршрут по всей фабрике (для простоты дефолт будет статический redistributed).
 
-![схема](VXLAN_routing.png)
+![схема](project.png)
 
 ---
 
