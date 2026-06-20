@@ -1236,140 +1236,228 @@ save
 Для примера будем смотреть Leaf-1, тк на Leaf-3 аналогичные настройки. А затем сделам ping и trace с хоста 192.168.10.11 до 192.168.10.33 и 192.168.20.33.
 
 <details>
-<summary><b>Показать результаты на L1</b></summary>
+<summary><b>Показать результаты на Border-Leaf-1-1</b></summary>
 
 ```bash
-L1#sh ip bgp summary
-BGP summary information for VRF default
-Router identifier 10.10.10.11, local AS number 65501
-Neighbor Status Codes: m - Under maintenance
-  Description              Neighbor   V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
-  S1-evpn                  10.10.10.1 4 65500          10368     10402    0    0 00:45:11 Estab   5      5
-  S2-evpn                  10.10.10.2 4 65500          10434     10472    0    0 00:41:10 Estab   5      5
-  S1-ipv4                  10.10.11.1 4 65500          10438     10457    0    0 00:46:29 Estab   5      5
-  S2-ipv4                  10.10.21.1 4 65500          10407     10413    0    0 00:41:11 Estab   5      5
+Border-Leaf-1-1#sh ip bgp summary vrf all
 
-L1#sh ip bgp 
+  Description              Neighbor   V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  Spine-1-1                10.11.11.1 4 65510           3569      3582    0    0 02:31:44 Estab   3      3
+  Leaf-2-1                 10.11.21.0 4 65521           3573      3573    0    0 02:31:33 Estab   4      4
+  Leaf-2-1                 10.11.21.2 4 65521           3560      3573    0    0 02:31:33 Estab   4      4
+
+BGP summary information for VRF DMZ
+
+  Neighbor    V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  10.11.102.1 4 65501           3016      3516    0    0 02:29:22 Estab   1      1
+
+BGP summary information for VRF INSIDE
+
+  Neighbor    V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  10.11.101.1 4 65501           3016      3513    0    0 02:29:22 Estab   1      1
+
+BGP summary information for VRF SECURITY
+
+  Neighbor    V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  10.11.103.1 4 65501           3016      3520    0    0 02:29:22 Estab   1      1
+Border-Leaf-1-1#sh ip bgp  vrf all
+
           Network                Next Hop              Metric  AIGP       LocPref Weight  Path
- * >      1.1.1.1/32             -                     -       -          -       0       i
- * >Ec    2.2.2.2/32             10.10.11.1            0       -          100     0       65500 65502 i
- *  ec    2.2.2.2/32             10.10.21.1            0       -          100     0       65500 65502 i
- *  E     2.2.2.2/32             10.10.10.1            0       -          100     0       65500 65502 i
- *  e     2.2.2.2/32             10.10.10.2            0       -          100     0       65500 65502 i
- * >Ec    3.3.3.3/32             10.10.11.1            0       -          100     0       65500 65503 i
- *  ec    3.3.3.3/32             10.10.21.1            0       -          100     0       65500 65503 i
- *  E     3.3.3.3/32             10.10.10.1            0       -          100     0       65500 65503 i
- *  e     3.3.3.3/32             10.10.10.2            0       -          100     0       65500 65503 i
- * >      10.10.10.1/32          10.10.11.1            0       -          100     0       65500 i
- *        10.10.10.1/32          10.10.10.1            0       -          100     0       65500 i
- * >      10.10.10.2/32          10.10.21.1            0       -          100     0       65500 i
- *        10.10.10.2/32          10.10.10.2            0       -          100     0       65500 i
  * >      10.10.10.11/32         -                     -       -          -       0       i
- * >Ec    10.10.10.12/32         10.10.11.1            0       -          100     0       65500 65502 i
- *  ec    10.10.10.12/32         10.10.21.1            0       -          100     0       65500 65502 i
- *  E     10.10.10.12/32         10.10.10.1            0       -          100     0       65500 65502 i
- *  e     10.10.10.12/32         10.10.10.2            0       -          100     0       65500 65502 i
- * >Ec    10.10.10.13/32         10.10.11.1            0       -          100     0       65500 65503 i
- *  ec    10.10.10.13/32         10.10.21.1            0       -          100     0       65500 65503 i
- *  E     10.10.10.13/32         10.10.10.1            0       -          100     0       65500 65503 i
- *  e     10.10.10.13/32         10.10.10.2            0       -          100     0       65500 65503 i
+ * >      10.10.10.12/32         10.11.11.1            0       -          100     0       65510 65512 i
+ * >      10.10.10.13/32         10.11.11.1            0       -          100     0       65510 65513 i
+ * >Ec    10.10.10.21/32         10.11.21.0            0       -          100     0       65521 i
+ *  ec    10.10.10.21/32         10.11.21.2            0       -          100     0       65521 i
+ * >Ec    10.10.10.22/32         10.11.21.0            0       -          100     0       65521 65520 65522 i
+ *  ec    10.10.10.22/32         10.11.21.2            0       -          100     0       65521 65520 65522 i
+ * >Ec    10.10.10.23/32         10.11.21.0            0       -          100     0       65521 65520 65523 i
+ *  ec    10.10.10.23/32         10.11.21.2            0       -          100     0       65521 65520 65523 i
+ * >      10.10.10.101/32        10.11.11.1            0       -          100     0       65510 i
+ * >Ec    10.10.10.201/32        10.11.21.0            0       -          100     0       65521 65520 i
+ *  ec    10.10.10.201/32        10.11.21.2            0       -          100     0       65521 65520 i
+BGP routing table information for VRF DMZ
 
-L1#sh bgp evpn summary 
-BGP summary information for VRF default
-Router identifier 10.10.10.11, local AS number 65501
-Neighbor Status Codes: m - Under maintenance
-  Description              Neighbor   V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
-  S1-evpn                  10.10.10.1 4 65500          10390     10424    0    0 00:46:07 Estab   12     12
-  S2-evpn                  10.10.10.2 4 65500          10456     10494    0    0 00:42:06 Estab   12     12
+          Network                Next Hop              Metric  AIGP       LocPref Weight  Path
+ * >      0.0.0.0/0              10.11.102.1           0       -          100     0       65501 i
+ *        0.0.0.0/0              10.10.10.21           0       -          100     0       65521 65502 i
+ * >      10.11.102.0/31         -                     -       -          -       0       i
+ * >      10.21.102.0/31         10.10.10.21           0       -          100     0       65521 i
+ * >Ec    192.168.20.0/24        10.10.10.12           0       -          100     0       65510 65512 i
+ *  ec    192.168.20.0/24        10.10.10.13           0       -          100     0       65510 65513 i
+ *  Ec    192.168.20.0/24        10.10.10.23           0       -          100     0       65521 65520 65523 i
+ *  ec    192.168.20.0/24        10.10.10.22           0       -          100     0       65521 65520 65522 i
+BGP routing table information for VRF INSIDE
 
-L1#sh ip route bgp
+          Network                Next Hop              Metric  AIGP       LocPref Weight  Path
+ * >      0.0.0.0/0              10.11.101.1           0       -          100     0       65501 i
+ *        0.0.0.0/0              10.10.10.21           0       -          100     0       65521 65502 i
+ * >      10.11.101.0/31         -                     -       -          -       0       i
+ * >      10.21.101.0/31         10.10.10.21           0       -          100     0       65521 i
+ * >Ec    192.168.10.0/24        10.10.10.12           0       -          100     0       65510 65512 i
+ *  ec    192.168.10.0/24        10.10.10.13           0       -          100     0       65510 65513 i
+ *  Ec    192.168.10.0/24        10.10.10.23           0       -          100     0       65521 65520 65523 i
+ *  ec    192.168.10.0/24        10.10.10.22           0       -          100     0       65521 65520 65522 i
+BGP routing table information for VRF SECURITY
 
- B E      2.2.2.2/32 [200/0] via 10.10.21.1, Ethernet7
-                             via 10.10.11.1, Ethernet8
- B E      3.3.3.3/32 [200/0] via 10.10.21.1, Ethernet7
-                             via 10.10.11.1, Ethernet8
- B E      10.10.10.1/32 [200/0] via 10.10.11.1, Ethernet8
- B E      10.10.10.2/32 [200/0] via 10.10.21.1, Ethernet7
- B E      10.10.10.12/32 [200/0] via 10.10.21.1, Ethernet7
-                                 via 10.10.11.1, Ethernet8
- B E      10.10.10.13/32 [200/0] via 10.10.21.1, Ethernet7
-                                 via 10.10.11.1, Ethernet8
+          Network                Next Hop              Metric  AIGP       LocPref Weight  Path
+ * >      0.0.0.0/0              10.11.103.1           0       -          100     0       65501 i
+ *        0.0.0.0/0              10.10.10.21           0       -          100     0       65521 65502 i
+ * >      10.11.103.0/31         -                     -       -          -       0       i
+ * >      10.21.103.0/31         10.10.10.21           0       -          100     0       65521 i
+ * >Ec    192.168.30.0/24        10.10.10.12           0       -          100     0       65510 65512 i
+ *  ec    192.168.30.0/24        10.10.10.13           0       -          100     0       65510 65513 i
+ *  Ec    192.168.30.0/24        10.10.10.23           0       -          100     0       65521 65520 65523 i
+ *  ec    192.168.30.0/24        10.10.10.22           0       -          100     0       65521 65520 65522 i
+Border-Leaf-1-1#sh ip route vrf all
+ C        10.10.10.11/32 is directly connected, Loopback0
+ B E      10.10.10.12/32 [200/0] via 10.11.11.1, Ethernet1
+ B E      10.10.10.13/32 [200/0] via 10.11.11.1, Ethernet1
+ B E      10.10.10.21/32 [200/0] via 10.11.21.0, Ethernet4
+                                 via 10.11.21.2, Ethernet7
+ B E      10.10.10.22/32 [200/0] via 10.11.21.0, Ethernet4
+                                 via 10.11.21.2, Ethernet7
+ B E      10.10.10.23/32 [200/0] via 10.11.21.0, Ethernet4
+                                 via 10.11.21.2, Ethernet7
+ B E      10.10.10.101/32 [200/0] via 10.11.11.1, Ethernet1
+ B E      10.10.10.201/32 [200/0] via 10.11.21.0, Ethernet4
+                                  via 10.11.21.2, Ethernet7
+ C        10.11.11.0/31 is directly connected, Ethernet1
+ C        10.11.21.0/31 is directly connected, Ethernet4
+ C        10.11.21.2/31 is directly connected, Ethernet7
+VRF: DMZ
 
-L1#sh bgp evpn route-type imet
-          Network                Next Hop              Metric  LocPref Weight  Path
- * >      RD: 10.10.10.11:10 imet 1.1.1.1
-                                 -                     -       -       0       i
- * >      RD: 10.10.10.11:20 imet 1.1.1.1
-                                 -                     -       -       0       i
- * >Ec    RD: 10.10.10.12:10 imet 2.2.2.2
-                                 2.2.2.2               -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:10 imet 2.2.2.2
-                                 2.2.2.2               -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:20 imet 2.2.2.2
-                                 2.2.2.2               -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:20 imet 2.2.2.2
-                                 2.2.2.2               -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.13:10 imet 3.3.3.3
-                                 3.3.3.3               -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:10 imet 3.3.3.3
-                                 3.3.3.3               -       100     0       65500 65503 i
- * >Ec    RD: 10.10.10.13:20 imet 3.3.3.3
-                                 3.3.3.3               -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:20 imet 3.3.3.3
-                                 3.3.3.3               -       100     0       65500 65503 i
-
-L1#sh bgp evpn route-type ip-prefix ipv4
-          Network                Next Hop              Metric  LocPref Weight  Path
- * >Ec    RD: 10.10.10.12:1 ip-prefix 0.0.0.0/0
-                                 2.2.2.2               -       100     0       65500 65502 65555 ?
- *  ec    RD: 10.10.10.12:1 ip-prefix 0.0.0.0/0
-                                 2.2.2.2               -       100     0       65500 65502 65555 ?
- * >Ec    RD: 10.10.10.12:2 ip-prefix 0.0.0.0/0
-                                 2.2.2.2               -       100     0       65500 65502 65555 ?
- *  ec    RD: 10.10.10.12:2 ip-prefix 0.0.0.0/0
-                                 2.2.2.2               -       100     0       65500 65502 65555 ?
- * >Ec    RD: 10.10.10.12:1 ip-prefix 172.20.1.0/30
-                                 2.2.2.2               -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:1 ip-prefix 172.20.1.0/30
-                                 2.2.2.2               -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.12:2 ip-prefix 172.20.2.0/30
-                                 2.2.2.2               -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:2 ip-prefix 172.20.2.0/30
-                                 2.2.2.2               -       100     0       65500 65502 i
- * >      RD: 10.10.10.11:1 ip-prefix 192.168.10.0/24
-                                 -                     -       -       0       i
- * >Ec    RD: 10.10.10.12:1 ip-prefix 192.168.10.0/24
-                                 2.2.2.2               -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:1 ip-prefix 192.168.10.0/24
-                                 2.2.2.2               -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.13:1 ip-prefix 192.168.10.0/24
-                                 3.3.3.3               -       100     0       65500 65503 i
- *  ec    RD: 10.10.10.13:1 ip-prefix 192.168.10.0/24
-                                 3.3.3.3               -       100     0       65500 65503 i
- * >      RD: 10.10.10.11:2 ip-prefix 192.168.20.0/24
-                                 -                     -       -       0       i
- * >Ec    RD: 10.10.10.12:2 ip-prefix 192.168.20.0/24
-                                 2.2.2.2               -       100     0       65500 65502 i
- *  ec    RD: 10.10.10.12:2 ip-prefix 192.168.20.0/24
-                                 2.2.2.2               -       100     0       65500 65502 i
- * >Ec    RD: 10.10.10.13:2 ip-prefix 192.168.20.0/24
-                                 3.3.3.3               -       100     0       65500 65503 i
-
-L1#sh ip route vrf 1
 Gateway of last resort:
- B E      0.0.0.0/0 [200/0] via VTEP 2.2.2.2 VNI 10001 router-mac 50:02:0e:3d:67:d3 local-interface Vxlan1
+ B E      0.0.0.0/0 [200/0] via 10.11.102.1, Port-Channel1.102
 
- B E      172.20.1.0/30 [200/0] via VTEP 2.2.2.2 VNI 10001 router-mac 50:02:0e:3d:67:d3 local-interface Vxlan1
- C        192.168.10.0/24 is directly connected, Vlan10
+ C        10.11.102.0/31 is directly connected, Port-Channel1.102
+ B E      10.21.102.0/31 [200/0] via VTEP 10.10.10.21 VNI 10200 router-mac 50:b4:25:f5:44:ef local-interface Vxlan
+1
+ B E      192.168.20.0/24 [200/0] via VTEP 10.10.10.13 VNI 10200 router-mac 50:34:da:bc:0e:07 local-interface Vxla
+n1
+                                  via VTEP 10.10.10.12 VNI 10200 router-mac 50:0e:0e:26:0f:96 local-interface Vxla
+n1
+VRF: INSIDE
 
-L1#sh ip route vrf 2
 Gateway of last resort:
- B E      0.0.0.0/0 [200/0] via VTEP 2.2.2.2 VNI 10002 router-mac 50:02:0e:3d:67:d3 local-interface Vxlan1
+ B E      0.0.0.0/0 [200/0] via 10.11.101.1, Port-Channel1.101
 
- B E      172.20.2.0/30 [200/0] via VTEP 2.2.2.2 VNI 10002 router-mac 50:02:0e:3d:67:d3 local-interface Vxlan1
- C        192.168.20.0/24 is directly connected, Vlan20
+ C        10.11.101.0/31 is directly connected, Port-Channel1.101
+ B E      10.21.101.0/31 [200/0] via VTEP 10.10.10.21 VNI 10100 router-mac 50:b4:25:f5:44:ef local-interface Vxlan
+1
+ B E      192.168.10.0/24 [200/0] via VTEP 10.10.10.13 VNI 10100 router-mac 50:34:da:bc:0e:07 local-interface Vxla
+n1
+                                  via VTEP 10.10.10.12 VNI 10100 router-mac 50:0e:0e:26:0f:96 local-interface Vxla
+n1
+VRF: SECURITY
+
+Gateway of last resort:
+ B E      0.0.0.0/0 [200/0] via 10.11.103.1, Port-Channel1.103
+
+ C        10.11.103.0/31 is directly connected, Port-Channel1.103
+ B E      10.21.103.0/31 [200/0] via VTEP 10.10.10.21 VNI 10300 router-mac 50:b4:25:f5:44:ef local-interface Vxlan
+1
+ B E      192.168.30.0/24 [200/0] via VTEP 10.10.10.13 VNI 10300 router-mac 50:34:da:bc:0e:07 local-interface Vxla
+n1
+                                  via VTEP 10.10.10.12 VNI 10300 router-mac 50:0e:0e:26:0f:96 local-interface Vxla
+n1
+Border-Leaf-1-1#sh bgp evpn summary 
+
+  Description              Neighbor     V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  Leaf-2-1                 10.10.10.21  4 65521           3631      3616    0    0 02:31:59 Estab   22     22
+  Spine-1-1                10.10.10.101 4 65510           3614      3647    0    0 02:32:10 Estab   12     12
+Border-Leaf-1-1#sh bgp evpn 
+
+          Network                Next Hop              Metric  LocPref Weight  Path
+ * >      RD: 10.10.10.23:10 mac-ip 1265.5741.3be1
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
+ * >      RD: 10.10.10.11:10 imet 10.10.10.11
+                                 -                     -       -       0       i
+ * >      RD: 10.10.10.11:20 imet 10.10.10.11
+                                 -                     -       -       0       i
+ * >      RD: 10.10.10.11:30 imet 10.10.10.11
+                                 -                     -       -       0       i
+ * >      RD: 10.10.10.12:10 imet 10.10.10.12
+                                 10.10.10.12           -       100     0       65510 65512 i
+ * >      RD: 10.10.10.12:20 imet 10.10.10.12
+                                 10.10.10.12           -       100     0       65510 65512 i
+ * >      RD: 10.10.10.12:30 imet 10.10.10.12
+                                 10.10.10.12           -       100     0       65510 65512 i
+ * >      RD: 10.10.10.13:10 imet 10.10.10.13
+                                 10.10.10.13           -       100     0       65510 65513 i
+ * >      RD: 10.10.10.13:20 imet 10.10.10.13
+                                 10.10.10.13           -       100     0       65510 65513 i
+ * >      RD: 10.10.10.13:30 imet 10.10.10.13
+                                 10.10.10.13           -       100     0       65510 65513 i
+ * >      RD: 10.10.10.21:10 imet 10.10.10.21
+                                 10.10.10.21           -       100     0       65521 i
+ * >      RD: 10.10.10.21:20 imet 10.10.10.21
+                                 10.10.10.21           -       100     0       65521 i
+ * >      RD: 10.10.10.21:30 imet 10.10.10.21
+                                 10.10.10.21           -       100     0       65521 i
+ * >      RD: 10.10.10.22:10 imet 10.10.10.22
+                                 10.10.10.22           -       100     0       65521 65520 65522 i
+ * >      RD: 10.10.10.22:20 imet 10.10.10.22
+                                 10.10.10.22           -       100     0       65521 65520 65522 i
+ * >      RD: 10.10.10.22:30 imet 10.10.10.22
+                                 10.10.10.22           -       100     0       65521 65520 65522 i
+ * >      RD: 10.10.10.23:10 imet 10.10.10.23
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
+ * >      RD: 10.10.10.23:20 imet 10.10.10.23
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
+ * >      RD: 10.10.10.23:30 imet 10.10.10.23
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
+ * >      RD: 10.10.10.11:100 ip-prefix 0.0.0.0/0
+                                 -                     0       100     0       65501 i
+ * >      RD: 10.10.10.11:200 ip-prefix 0.0.0.0/0
+                                 -                     0       100     0       65501 i
+ * >      RD: 10.10.10.11:300 ip-prefix 0.0.0.0/0
+                                 -                     0       100     0       65501 i
+ * >      RD: 10.10.10.21:100 ip-prefix 0.0.0.0/0
+                                 10.10.10.21           -       100     0       65521 65502 i
+ * >      RD: 10.10.10.21:200 ip-prefix 0.0.0.0/0
+                                 10.10.10.21           -       100     0       65521 65502 i
+ * >      RD: 10.10.10.21:300 ip-prefix 0.0.0.0/0
+                                 10.10.10.21           -       100     0       65521 65502 i
+ * >      RD: 10.10.10.11:100 ip-prefix 10.11.101.0/31
+                                 -                     -       -       0       i
+ * >      RD: 10.10.10.11:200 ip-prefix 10.11.102.0/31
+                                 -                     -       -       0       i
+ * >      RD: 10.10.10.11:300 ip-prefix 10.11.103.0/31
+                                 -                     -       -       0       i
+ * >      RD: 10.10.10.21:100 ip-prefix 10.21.101.0/31
+                                 10.10.10.21           -       100     0       65521 i
+ * >      RD: 10.10.10.21:200 ip-prefix 10.21.102.0/31
+                                 10.10.10.21           -       100     0       65521 i
+ * >      RD: 10.10.10.21:300 ip-prefix 10.21.103.0/31
+                                 10.10.10.21           -       100     0       65521 i
+ * >      RD: 10.10.10.12:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.12           -       100     0       65510 65512 i
+ * >      RD: 10.10.10.13:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.13           -       100     0       65510 65513 i
+ * >      RD: 10.10.10.22:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.22           -       100     0       65521 65520 65522 i
+ * >      RD: 10.10.10.23:100 ip-prefix 192.168.10.0/24
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
+ * >      RD: 10.10.10.12:200 ip-prefix 192.168.20.0/24
+                                 10.10.10.12           -       100     0       65510 65512 i
+ * >      RD: 10.10.10.13:200 ip-prefix 192.168.20.0/24
+                                 10.10.10.13           -       100     0       65510 65513 i
+ * >      RD: 10.10.10.22:200 ip-prefix 192.168.20.0/24
+                                 10.10.10.22           -       100     0       65521 65520 65522 i
+ * >      RD: 10.10.10.23:200 ip-prefix 192.168.20.0/24
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
+ * >      RD: 10.10.10.12:300 ip-prefix 192.168.30.0/24
+                                 10.10.10.12           -       100     0       65510 65512 i
+ * >      RD: 10.10.10.13:300 ip-prefix 192.168.30.0/24
+                                 10.10.10.13           -       100     0       65510 65513 i
+ * >      RD: 10.10.10.22:300 ip-prefix 192.168.30.0/24
+                                 10.10.10.22           -       100     0       65521 65520 65522 i
+ * >      RD: 10.10.10.23:300 ip-prefix 192.168.30.0/24
+                                 10.10.10.23           -       100     0       65521 65520 65523 i
 ```
 </details>
+
+Мы видим, что одно соседство в ipv4 установлено со Spine, два с Border-Leaf из второго ЦОД по двум разным routed линкам, а также три соседства в разных vrf с FW-1, получены дефолтные маршруты во всех трех vrf, в том числе из другого ЦОД, анонсируются префиксы в сторону мсэ, формируется таблица маршрутизации - все лупбэки известны, дефолтный маршрут выбран ближайший (локального МСЭ). В EVPN также установлено два соседства со Spine-1-1 и Border-Leaf другого ЦОД, все маршруты приходят. Пришло время проверить на хостах.
 
 <details>
 <summary><b>Показать результаты на хосте</b></summary>
@@ -1378,42 +1466,68 @@ Gateway of last resort:
 VPCS> sh ip
 
 NAME        : VPCS[1]
-IP/MASK     : 192.168.10.11/24
+IP/MASK     : 192.168.10.12/24
 GATEWAY     : 192.168.10.1
 DNS         : 
-MAC         : 00:50:79:66:68:37
+MAC         : 00:50:79:66:68:50
 LPORT       : 20000
 RHOST:PORT  : 127.0.0.1:30000
 MTU         : 1500
 
-VPCS> ping 192.168.10.33
+VPCS> ping 192.168.20.13
 
-192.168.10.33 icmp_seq=1 timeout
-84 bytes from 192.168.10.33 icmp_seq=2 ttl=64 time=11.006 ms
-84 bytes from 192.168.10.33 icmp_seq=3 ttl=64 time=11.146 ms
-84 bytes from 192.168.10.33 icmp_seq=4 ttl=64 time=10.739 ms
-84 bytes from 192.168.10.33 icmp_seq=5 ttl=64 time=10.557 ms
+84 bytes from 192.168.20.13 icmp_seq=1 ttl=59 time=269.253 ms
+84 bytes from 192.168.20.13 icmp_seq=2 ttl=59 time=32.419 ms
+84 bytes from 192.168.20.13 icmp_seq=3 ttl=59 time=36.396 ms
+84 bytes from 192.168.20.13 icmp_seq=4 ttl=59 time=41.365 ms
+84 bytes from 192.168.20.13 icmp_seq=5 ttl=59 time=40.321 ms
 
-VPCS> ping 192.168.20.33
+VPCS> ping 192.168.30.22
 
-84 bytes from 192.168.20.33 icmp_seq=1 ttl=59 time=118.449 ms
-84 bytes from 192.168.20.33 icmp_seq=2 ttl=59 time=24.906 ms
-84 bytes from 192.168.20.33 icmp_seq=3 ttl=59 time=25.344 ms
-84 bytes from 192.168.20.33 icmp_seq=4 ttl=59 time=25.002 ms
-84 bytes from 192.168.20.33 icmp_seq=5 ttl=59 time=25.166 ms
+84 bytes from 192.168.30.22 icmp_seq=1 ttl=59 time=301.695 ms
+84 bytes from 192.168.30.22 icmp_seq=2 ttl=59 time=30.307 ms
+84 bytes from 192.168.30.22 icmp_seq=3 ttl=59 time=27.942 ms
+84 bytes from 192.168.30.22 icmp_seq=4 ttl=59 time=30.735 ms
+84 bytes from 192.168.30.22 icmp_seq=5 ttl=59 time=28.400 ms
 
-VPCS> trace 192.168.20.33
-trace to 192.168.20.33, 8 hops max, press Ctrl+C to stop
- 1   192.168.10.1   2.212 ms  1.863 ms  2.115 ms
- 2   192.168.10.1   8.767 ms  10.127 ms  8.392 ms
- 3   172.20.1.1   12.595 ms  12.832 ms  10.693 ms
- 4   172.20.2.2   15.520 ms  15.485 ms  14.437 ms
- 5   192.168.20.1   21.763 ms  23.522 ms  19.499 ms
- 6   *192.168.20.33   25.191 ms (ICMP type:3, code:3, Destination port unreachable)
+VPCS> ping 192.168.10.23
+
+192.168.10.23 icmp_seq=1 timeout
+84 bytes from 192.168.10.23 icmp_seq=2 ttl=64 time=22.947 ms
+84 bytes from 192.168.10.23 icmp_seq=3 ttl=64 time=23.620 ms
+84 bytes from 192.168.10.23 icmp_seq=4 ttl=64 time=21.065 ms
+84 bytes from 192.168.10.23 icmp_seq=5 ttl=64 time=20.872 ms
+
+VPCS> ping 192.168.20.23
+
+84 bytes from 192.168.20.23 icmp_seq=1 ttl=59 time=273.495 ms
+84 bytes from 192.168.20.23 icmp_seq=2 ttl=59 time=33.764 ms
+84 bytes from 192.168.20.23 icmp_seq=3 ttl=59 time=32.263 ms
+84 bytes from 192.168.20.23 icmp_seq=4 ttl=59 time=39.164 ms
+84 bytes from 192.168.20.23 icmp_seq=5 ttl=59 time=29.066 ms
+
+VPCS> ping 192.168.30.23
+
+192.168.30.23 icmp_seq=1 timeout
+84 bytes from 192.168.30.23 icmp_seq=2 ttl=59 time=27.973 ms
+84 bytes from 192.168.30.23 icmp_seq=3 ttl=59 time=25.979 ms
+84 bytes from 192.168.30.23 icmp_seq=4 ttl=59 time=26.263 ms
+84 bytes from 192.168.30.23 icmp_seq=5 ttl=59 time=28.028 ms
+
+VPCS> trace 192.168.30.23
+trace to 192.168.30.23, 8 hops max, press Ctrl+C to stop
+ 1   192.168.10.1   4.442 ms  2.147 ms  2.192 ms
+ 2   10.11.101.0   10.000 ms  10.523 ms  9.615 ms
+ 3   10.11.101.1   10.297 ms  10.546 ms  11.283 ms
+ 4   10.11.103.0   13.248 ms  13.785 ms  11.603 ms
+ 5   192.168.30.1   28.458 ms  24.203 ms  22.710 ms
+ 6   *192.168.30.23   27.962 ms (ICMP type:3, code:3, Destination port unreachable)
 
 ```
 </details>
 
-Как мы можем видеть, устройство FW анонсирует дефолтный маршрут в vrf 1 и в vrf 2. Эти маршруты принимает Leaf-2 и рассылает по всей фабрике, то есть они становятся известны всем Leaf. Сами Leafs не маршрутизируют трафик между подсетями 192.168.10.0/24 и 192.168.20.0/24, потому что они находятся в разных vrf, а значит изолированы. Но у них есть дефолтный маршрут через FW, куда они и направляют трафик если требуется переслать данные между этими подсетями/vrf.
+Как мы можем видеть, устройство FW анонсирует дефолтный маршрут во все vrf. Эти маршруты рассылаются по всей фабрике. Сами Leafs не маршрутизируют трафик между подсетями, а направляют трафик на ЛОКАЛЬНЫЙ МСЭ (потому что длина пути меньше). 
 
-Ping успешен, трассировка подтверждает, что трафик идет через FW. Задача выполнена!
+В случае отказа одного из МСЭ BGP автоматически определит дефолт через другой ЦОД. А за счет SNAT на МСЭ мы решили проблемы ассиметричного обратного трафика при маршрутизации между двумя ЦОД.
+
+Ping успешен, модель Active-Active реализована!
