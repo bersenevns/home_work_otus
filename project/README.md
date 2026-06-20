@@ -74,7 +74,7 @@ VyOS будет выполнять роль FW, FW подключен к Border 
 2) Настраиваем BGP-соседство с loopback0 в address-family evpn
 3) Настраиваем интерфейсы VLAN 10,20,30  разных VRF
 4) Настраиваем Anycast gateway на Leafs
-5) Настраиваем BGP-соседство между Leaf2 и FW для передачи дефолтного маршрута в фабрику и префиксов фабрики из фабрики
+5) Настраиваем BGP-соседство между Border Leaf и FW для передачи дефолтного маршрута в фабрику и префиксов из фабрики
 6) Проверяем связанность между VRF на хостах как в одном ЦОД, так и между ЦОД
 
 Конфигурация устройств представлена ниже, лишние строки удалены в целях читаемости.
@@ -226,6 +226,12 @@ interface Ethernet5
 interface Ethernet6
    channel-group 1 mode on
 !
+interface Ethernet7
+   description Leaf-2-1
+   mtu 9214
+   no switchport
+   ip address 10.11.21.3/31
+!
 interface Loopback0
    ip address 10.10.10.11/32
 !
@@ -299,6 +305,7 @@ router bgp 65511
       route-target import evpn 200:200
       route-target export evpn 200:200
       neighbor 10.11.102.1 remote-as 65501
+      redistribute connected
       !
       address-family ipv4
          neighbor 10.11.102.1 activate
@@ -308,6 +315,7 @@ router bgp 65511
       route-target import evpn 100:100
       route-target export evpn 100:100
       neighbor 10.11.101.1 remote-as 65501
+      redistribute connected
       !
       address-family ipv4
          neighbor 10.11.101.1 activate
@@ -317,6 +325,7 @@ router bgp 65511
       route-target import evpn 300:300
       route-target export evpn 300:300
       neighbor 10.11.103.1 remote-as 65501
+      redistribute connected
       !
       address-family ipv4
          neighbor 10.11.103.1 activate
@@ -353,11 +362,6 @@ interface Ethernet1
    mtu 9214
    no switchport
    ip address 10.11.12.0/31
-!
-interface Ethernet7
-   description VLAN_20
-   mtu 9214
-   switchport access vlan 20
 !
 interface Ethernet8
    description VLAN_10
@@ -486,15 +490,10 @@ interface Ethernet1
    no switchport
    ip address 10.11.13.0/31
 !
-interface Ethernet7
+interface Ethernet8
    description VLAN_20
    mtu 9214
    switchport access vlan 20
-!
-interface Ethernet8
-   description VLAN_10
-   mtu 9214
-   switchport access vlan 10
 !
 interface Loopback0
    ip address 10.10.10.13/32
@@ -796,6 +795,12 @@ interface Ethernet5
 interface Ethernet6
    channel-group 1 mode on
 !
+interface Ethernet7
+   description Leaf-1-1
+   mtu 9214
+   no switchport
+   ip address 10.11.21.2/31
+!
 interface Loopback0
    ip address 10.10.10.21/32
 !
@@ -869,6 +874,7 @@ router bgp 65521
       route-target import evpn 200:200
       route-target export evpn 200:200
       neighbor 10.21.102.1 remote-as 65502
+      redistribute connected
       !
       address-family ipv4
          neighbor 10.21.102.1 activate
@@ -878,6 +884,7 @@ router bgp 65521
       route-target import evpn 100:100
       route-target export evpn 100:100
       neighbor 10.21.101.1 remote-as 65502
+      redistribute connected
       !
       address-family ipv4
          neighbor 10.21.101.1 activate
@@ -887,6 +894,7 @@ router bgp 65521
       route-target import evpn 300:300
       route-target export evpn 300:300
       neighbor 10.21.103.1 remote-as 65502
+      redistribute connected
       !
       address-family ipv4
          neighbor 10.21.103.1 activate
@@ -924,15 +932,10 @@ interface Ethernet1
    no switchport
    ip address 10.21.22.0/31
 !
-interface Ethernet7
-   description VLAN_20
-   mtu 9214
-   switchport access vlan 20
-!
 interface Ethernet8
-   description VLAN_10
+   description VLAN_30
    mtu 9214
-   switchport access vlan 10
+   switchport access vlan 30
 !
 interface Loopback0
    ip address 10.10.10.22/32
@@ -1055,6 +1058,11 @@ interface Ethernet1
    mtu 9214
    no switchport
    ip address 10.21.23.0/31
+!
+interface Ethernet6
+   description VLAN_30
+   mtu 9214
+   switchport access vlan 30
 !
 interface Ethernet7
    description VLAN_20
